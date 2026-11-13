@@ -39,6 +39,7 @@ def analyze(y):
     flux = np.maximum(0, np.diff(np.log1p(10 * mag), axis=0))
     env = flux.sum(1) + 2 * flux[:, :12].sum(1)  # extra weight below ~250 Hz (kick)
     env = (env - env.mean()) / (env.std() + 1e-9)
+    low = flux[:, :12].sum(1)  # kick only: used to lock the beat phase
     rms = np.sqrt((frames ** 2).mean(1))[1:]
     fr = SR / HOP
 
@@ -57,7 +58,7 @@ def analyze(y):
         period = fr * 60 / cand
         for ph in np.linspace(0, period, 24, endpoint=False):
             grid = np.arange(ph, len(env) - 1, period)
-            score = np.interp(grid, idx, env).mean()
+            score = np.interp(grid, idx, low).mean()
             if score > best:
                 best, bpm, phase = score, cand, ph
     period = fr * 60 / bpm
