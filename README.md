@@ -22,6 +22,7 @@
 - **ייצוא MP4 (H.264 + AAC/Opus)** מדויק לפריים דרך WebCodecs, עד 4K ו‑60fps.
 - **Undo/Redo**, שמירה אוטומטית במכשיר (IndexedDB), ריבוי פרויקטים, עברית/אנגלית.
 - **ענן Supabase** – התחברות, גיבוי פרויקטים ומדיה וסנכרון בין מכשירים.
+- **CutVid AI** – עוזר שבונה אנימציות, פתיחים וסרטונים שלמים בטיימליין לפי תיאור, עם ספק ומודל לבחירתכם.
 
 קיצורי מקלדת: `Space` ניגון · `S` פיצול · `Delete` מחיקה · `Ctrl+Z / Ctrl+Shift+Z` · `Ctrl+D` שכפול · `←/→` פריים (עם `Shift` – 10) · `Ctrl+גלגלת` זום.
 
@@ -80,11 +81,39 @@ npm run cap:ios       # יוצר ios/     → npx cap open ios  (דורש Mac + 
 - כברירת מחדל Supabase שולח אימייל אימות בהרשמה. לבדיקות אפשר לכבות: *Authentication → Sign In / Providers → Email → Confirm email*.
 - בתוכנית החינמית קובץ בודד ב‑Storage מוגבל ל‑50MB (ניתן לשינוי ב‑*Storage → Settings*).
 
+## CutVid AI
+
+לשונית **AI** בספרייה: כותבים מה ליצור ("פתיח של 5 שניות עם הכותרת…", "סדר את הקליפים ברצף עם fade") וה‑AI מוסיף ומעדכן קליפים, קיפריימים, אנימציות ופילטרים. כל תשובה היא צעד Undo אחד.
+
+ה‑AI בונה מטקסט, צורות והמדיה שכבר בפרויקט. הוא **לא** מייצר צילומי וידאו, תמונות או קול חדשים.
+
+### ספק משלכם
+
+1. פותחים את "הגדרות ספק" ובוחרים ספק: Anthropic (Claude), OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Fireworks, Cerebras, Ollama / LM Studio (מקומי), או כל שרת תואם‑OpenAI בכתובת משלכם.
+2. מדביקים את ה‑API key ולוחצים **"טען מודלים זמינים"** – הרשימה נמשכת מהספק לפי המפתח.
+3. בוחרים מודל ומתחילים לכתוב.
+
+המפתח נשמר במכשיר בלבד (`localStorage`) ונשלח רק לספק שנבחר. באפליקציות (Windows/Mac/iOS/Android) הבקשות יוצאות מחוץ ל‑WebView ולכן כל הספקים עובדים; בגרסת הדפדפן ספק שלא מאפשר קריאות cross‑origin ייחסם על ידי הדפדפן.
+
+### CutVid AI מובנה (בלי מפתח למשתמשים)
+
+הספק "CutVid AI" רץ דרך Supabase Edge Function ([`supabase/functions/cutvid-ai`](supabase/functions/cutvid-ai/index.ts)), כך שהמפתח נשאר בשרת ורק משתמשים מחוברים יכולים לקרוא לו:
+
+```bash
+npm i -g supabase && supabase login
+supabase link --project-ref <PROJECT_REF>
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+supabase functions deploy cutvid-ai
+```
+
+ברירת המחדל היא `claude-opus-5-5`; אפשר להחליף עם `supabase secrets set CUTVID_AI_MODEL=...`. שימו לב שהשימוש מחויב בחשבון ה‑Anthropic שלכם על כל משתמש מחובר – כדאי להוסיף מגבלת שימוש לפני פתיחה לקהל רחב.
+
 ## מגבלות ידועות
 
 - הייצוא דורש WebCodecs: Chrome/Edge/Electron/Android WebView, ו‑Safari/iOS 16.4 ומעלה. ב‑iOS ישן מ‑26 אין מקודד אודיו ולכן הקובץ ייצא ללא קול.
 - פילטרי צבע נשענים על `CanvasRenderingContext2D.filter`; בגרסאות Safari/iOS שלא תומכות בו הם מדולגים.
 - שינוי מהירות משנה גם את גובה הצליל בקובץ המיוצא.
+- ה‑AI נבדק מול שרת ספק מדומה (תואם‑OpenAI); החיבור לספקים אמיתיים ופונקציית ה‑Edge לא הורצו מול מפתח אמיתי.
 - הייצוא נבדק ב‑Chromium בלבד; העטיפות ל‑iOS/Android/Windows/macOS נבנות ב‑CI ולא נבדקו על מכשירים אמיתיים.
 
 ## מבנה
@@ -92,7 +121,8 @@ npm run cap:ios       # יוצר ios/     → npx cap open ios  (דורש Mac + 
 ```
 src/engine/   render.ts (קומפוזיטור) · player.ts · export.ts · media.ts · keyframes.ts
 src/components/  Timeline · Preview · Inspector · Library · דיאלוגים
+src/ai/       providers.ts (ספקים ומודלים) · assistant.ts (פרומפט והחלת פעולות) · http.ts
 src/lib/      supabase.ts · db.ts (IndexedDB) · save.ts · i18n.ts
 electron/     מעטפת דסקטופ        capacitor.config.ts  מעטפת מובייל
-supabase/     schema.sql
+supabase/     schema.sql · functions/cutvid-ai
 ```

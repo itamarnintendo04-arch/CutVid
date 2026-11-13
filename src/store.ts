@@ -24,7 +24,7 @@ export function emptyProject(name = 'Untitled'): Project {
   };
 }
 
-function baseClip(partial: Partial<Clip> & Pick<Clip, 'type' | 'trackId' | 'start' | 'duration' | 'name'>): Clip {
+export function baseClip(partial: Partial<Clip> & Pick<Clip, 'type' | 'trackId' | 'start' | 'duration' | 'name'>): Clip {
   return {
     id: uid(),
     offset: 0,
@@ -54,7 +54,7 @@ export function resolveOverlap(p: Draft<Project> | Project, clip: Clip) {
   }
 }
 
-function addTrackTo(p: Draft<Project>, kind: TrackKind): Track {
+export function addTrackTo(p: Draft<Project>, kind: TrackKind): Track {
   const n = p.tracks.filter((t) => t.kind === kind).length + 1;
   const track: Track = { id: uid(), kind, name: (kind === 'video' ? 'V' : 'A') + n, muted: false, hidden: false, locked: false };
   if (kind === 'video') p.tracks.unshift(track);
@@ -63,7 +63,7 @@ function addTrackTo(p: Draft<Project>, kind: TrackKind): Track {
 }
 
 /** Lowest free track of a kind for the interval, creating one if all are busy. */
-function freeTrack(p: Draft<Project>, kind: TrackKind, start: number, end: number, preferTop = false): string {
+export function freeTrack(p: Draft<Project>, kind: TrackKind, start: number, end: number, preferTop = false): string {
   let tracks = p.tracks.filter((t) => t.kind === kind && !t.locked);
   // Video layers stack upward: index 0 is the top, so search bottom-up unless an overlay is wanted.
   if (kind === 'video' && !preferTop) tracks = tracks.reverse();

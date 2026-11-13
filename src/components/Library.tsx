@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { AlertTriangle, Circle, Film, Image as ImageIcon, Music, Plus, Square, Trash2, Type, Upload } from 'lucide-react';
+import { AlertTriangle, Circle, Film, Image as ImageIcon, Music, Plus, Sparkles, Square, Trash2, Type, Upload } from 'lucide-react';
+import { AiPanel } from './AiPanel';
 import { useStore } from '../store';
 import { media } from '../engine/media';
 import { formatTime, useT, type TKey } from '../lib/i18n';
@@ -33,7 +34,7 @@ const TEXT_PRESETS: { key: TKey; style: Partial<TextStyle> }[] = [
 
 export function Library() {
   const t = useT();
-  const [tab, setTab] = useState<'media' | 'text' | 'elements'>('media');
+  const [tab, setTab] = useState<'media' | 'text' | 'elements' | 'ai'>('media');
   const assets = useStore((s) => s.project.assets);
   const addClipFromAsset = useStore((s) => s.addClipFromAsset);
   const removeAsset = useStore((s) => s.removeAsset);
@@ -59,7 +60,12 @@ export function Library() {
         <button className={tab === 'elements' ? 'active' : ''} onClick={() => setTab('elements')}>
           <Square size={15} /> {t('elements')}
         </button>
+        <button className={'ai-tab' + (tab === 'ai' ? ' active' : '')} onClick={() => setTab('ai')}>
+          <Sparkles size={15} /> {t('ai')}
+        </button>
       </div>
+
+      {tab === 'ai' && <AiPanel />}
 
       {tab === 'media' && (
         <div className="panel-scroll">

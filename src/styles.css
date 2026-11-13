@@ -226,3 +226,28 @@ main.center { text-align: initial; }
   .play-btn { width: 34px; height: 34px; }
   .handle { width: 20px; height: 20px; }
 }
+
+/* ---- AI assistant ---- */
+.tabs .ai-tab.active { border-bottom-color: var(--accent-2); color: var(--accent-2); }
+.small { font-size: 11.5px; margin: 0; }
+.ai-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ai-settings-toggle { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--panel-2); justify-content: flex-start; padding: 8px 10px; }
+.ai-model { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; min-width: 0; }
+.ai-settings { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-bottom: 1px solid var(--line); background: var(--panel-2); max-height: 60%; overflow-y: auto; }
+.ai-log { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; -webkit-user-select: text; user-select: text; }
+.ai-empty { display: flex; flex-direction: column; gap: 10px; }
+.ai-empty p { margin: 0; }
+.ai-suggestions { display: flex; flex-direction: column; gap: 6px; }
+.ai-suggestions .chip { border-radius: 10px; justify-content: flex-start; text-align: start; padding: 7px 10px; white-space: normal; }
+.bubble { max-width: 92%; padding: 8px 10px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bubble.user { align-self: flex-end; background: var(--accent); color: #fff; border-end-end-radius: 3px; }
+.bubble.assistant { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--line); border-end-start-radius: 3px; }
+.bubble.error { color: var(--danger); border-color: var(--danger); }
+.bubble-note { display: block; margin-top: 4px; color: var(--accent-2); font-size: 11px; }
+.ai-input { display: flex; align-items: flex-end; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
+.ai-input textarea { resize: none; }
+.ai-input .primary { padding: 9px; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ai-settings-toggle b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tabs button { white-space: nowrap; gap: 4px; }
