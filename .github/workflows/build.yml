@@ -6,7 +6,7 @@ on:
   push:
     branches: [main, 'claude/**']
     # Docs and Supabase-only changes do not need new app builds (macOS minutes are expensive).
-    paths-ignore: ['supabase/**', '**.md']
+    paths-ignore: ['supabase/**', '**.md', 'vercel.json']
     tags: ['v*']
   workflow_dispatch:
 
