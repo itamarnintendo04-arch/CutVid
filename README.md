@@ -38,14 +38,9 @@ npm run build        # בנייה ל-dist/
 
 ### הדרך הקלה – GitHub Actions
 
-כל push מריץ את `.github/workflows/build.yml` ובונה את כל הפלטפורמות.
-ב‑GitHub: **Actions → Build apps → הריצה האחרונה → Artifacts** ומורידים את הקבצים.
-
-דחיפת תג גרסה מפרסמת אותם גם כ‑Release:
-
-```bash
-git tag v1.0.0 && git push origin v1.0.0
-```
+כל push מריץ את `.github/workflows/build.yml`, בונה את כל הפלטפורמות ומפרסם דף הורדה.
+ב‑GitHub: **Releases → הגרסה העליונה → Assets** ולוחצים על הקובץ הרצוי – הורדה ישירה, בלי ZIP.
+(הקבצים זמינים גם תחת Actions → הריצה → Artifacts.) המאגר פרטי, ולכן צריך להיות מחוברים ל‑GitHub כדי להוריד.
 
 ### בנייה מקומית
 

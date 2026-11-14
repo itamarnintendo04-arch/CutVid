@@ -120,7 +120,8 @@ export const useStore = create<State>((set, get) => ({
   playing: false,
   selection: [],
   zoom: 80,
-  lang: (localStorage.getItem('cutvid:lang') as Lang) || (navigator.language.startsWith('he') ? 'he' : 'en'),
+  // English by default; the language button in the top bar switches to Hebrew.
+  lang: localStorage.getItem('cutvid:lang') === 'he' ? 'he' : 'en',
   busy: null,
 
   mutate: (fn, record = true) =>

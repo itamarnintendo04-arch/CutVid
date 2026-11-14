@@ -1,7 +1,7 @@
 name: Build apps
 
 # Produces installable files for every platform as workflow artifacts.
-# Pushing a tag like v1.0.0 additionally publishes them as a GitHub Release.
+# Each run also publishes a release page with direct download links (Releases tab).
 on:
   push:
     branches: [main, 'claude/**']
@@ -115,15 +115,39 @@ jobs:
         with: { name: CutVid-ios, path: CutVid-ios-unsigned.ipa, if-no-files-found: error }
 
   release:
-    name: GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    name: Publish downloads
+    # Every build gets its own release page with direct download links, even if one platform failed.
+    if: ${{ !cancelled() }}
     needs: [android, windows, mac, ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
-        with: { path: artifacts, merge-multiple: true, pattern: 'CutVid-{android,windows,mac,ios}' }
+        continue-on-error: true
+        with: { name: CutVid-android, path: artifacts }
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: { name: CutVid-ios, path: artifacts }
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: { name: CutVid-windows, path: artifacts }
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: { name: CutVid-mac, path: artifacts }
+      - run: ls -la artifacts
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('CutVid build {0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          make_latest: true
+          fail_on_unmatched_files: true
           files: artifacts/*
+          body: |
+            Direct downloads:
+            - **iPhone / iPad** – `CutVid-ios-unsigned.ipa` (install with Sideloadly or AltStore)
+            - **Android** – `CutVid-android.apk`
+            - **Windows** – `CutVid-*-setup.exe` or `CutVid-*-portable.exe`
+            - **macOS** – `CutVid-*-mac-arm64.dmg` (Apple Silicon) or `CutVid-*-mac-x64.dmg` (Intel)
