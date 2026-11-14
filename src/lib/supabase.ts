@@ -92,10 +92,9 @@ async function userId(c: SupabaseClient): Promise<string> {
 /**
  * Public address of the CutVid web app, without a trailing slash (e.g. https://cutvid.example.com).
  * When set, the apps sign in through its /auth.html bridge page, which shows a branded
- * "Returning to CutVid" screen and hands the result back to the app. When empty, Supabase
- * redirects straight to the app's URL scheme / loopback address instead.
+ * "Returning to CutVid" screen and hands the result back to the app.
  */
-const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) || '').replace(/\/+$/, '');
+const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) || 'https://cutvid.vercel.app').replace(/\/+$/, '');
 
 /** Where Supabase should send the user back to. Each of these must be allowed under Auth → URL Configuration. */
 export function redirectUrl(): string {
