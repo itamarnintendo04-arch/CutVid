@@ -18,6 +18,8 @@ env:
   # Optional: bake the Supabase project into the apps (Settings → Secrets and variables → Actions).
   VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
   VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+  # Optional: public URL of the hosted web app; enables the /auth.html return-to-app page (Settings → Variables).
+  VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
 
 jobs:
   web:

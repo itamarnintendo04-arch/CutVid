@@ -86,6 +86,16 @@ npm run cap:ios       # יוצר ios/     → npx cap open ios  (דורש Mac + 
 | `http://127.0.0.1:47823/callback` | Windows / macOS |
 | כתובת האתר שלכם (למשל `https://cutvid.example.com/`) | גרסת הדפדפן |
 
+### דף חזרה לאפליקציה (אופציונלי, מומלץ)
+
+כשגרסת הדפדפן מתארחת בכתובת ציבורית, הדף [`/auth.html`](public/auth.html) משמש גשר: אחרי התחברות עם Google או לחיצה על קישור במייל, הדפדפן מגיע לדף ממותג "Returning to CutVid" שמחזיר את התוצאה לאפליקציה (`?to=app` למובייל, `?to=desktop` למחשב) ומציג כפתור **Open CutVid** אם המעבר האוטומטי נחסם.
+
+1. מארחים את `dist/` (למשל ב‑Vercel) ומקבלים כתובת, נניח `https://cutvid.example.com`.
+2. ב‑GitHub: *Settings → Secrets and variables → Actions → Variables* מוסיפים `VITE_SITE_URL` עם הכתובת, ובונים מחדש.
+3. ב‑Supabase: מוסיפים ל‑Redirect URLs את `https://cutvid.example.com/**`, ומגדירים אותה גם כ‑**Site URL**.
+
+בלי `VITE_SITE_URL` האפליקציות חוזרות ישירות דרך `com.cutvid.app://auth` / הכתובת המקומית, כמו קודם.
+
 ### 4. התחברות עם Google
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → **OAuth consent screen** – ממלאים שם אפליקציה ואימייל.

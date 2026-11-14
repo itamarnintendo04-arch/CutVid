@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <title>CutVid – signing in</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { background: #0b0c10; color: #e8eaf0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; display: grid; place-items: center; padding: 20px; box-sizing: border-box; }
+      main { width: min(420px, 100%); background: #14161c; border: 1px solid #262a35; border-radius: 16px; padding: 28px; text-align: center; }
+      img { border-radius: 14px; }
+      h1 { font-size: 21px; margin: 14px 0 6px; }
+      p { color: #8b90a0; margin: 0 0 18px; }
+      a.btn { display: inline-block; background: #7c5cff; color: #fff; text-decoration: none; font-weight: 600; padding: 13px 26px; border-radius: 10px; }
+      .err { color: #ff5c7a; }
+      small { display: block; margin-top: 16px; color: #8b90a0; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="./icon.svg" width="64" height="64" alt="" />
+      <h1 id="title">Returning to CutVid…</h1>
+      <p id="text">You are signed in. This page hands you back to the app.</p>
+      <a id="open" class="btn" hidden>Open CutVid</a>
+      <small id="hint" hidden>If nothing happens, make sure CutVid is installed on this device, then tap the button.</small>
+    </main>
+    <script>
+      // Bridge between the browser and the CutVid apps. Supabase redirects here after Google sign-in,
+      // email confirmation or a password-reset link; this page forwards the result to a FIXED
+      // destination chosen by ?to= (never to an arbitrary URL, so it cannot be used as an open redirect).
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var to = params.get('to');
+        params.delete('to');
+        var query = params.toString();
+        var tail = (query ? '?' + query : '') + location.hash;
+        var targets = {
+          app: 'com.cutvid.app://auth',
+          desktop: 'http://127.0.0.1:47823/callback',
+        };
+        var failed = params.get('error_description') || params.get('error');
+        var title = document.getElementById('title');
+        var text = document.getElementById('text');
+        var open = document.getElementById('open');
+
+        if (failed) {
+          title.textContent = 'Sign-in did not complete';
+          text.textContent = failed;
+          text.className = 'err';
+        }
+        if (!targets[to]) {
+          // Web version: the editor itself finishes the sign-in.
+          location.replace('./' + tail);
+          return;
+        }
+        var url = targets[to] + tail;
+        open.href = url;
+        open.hidden = false;
+        if (to === 'app') document.getElementById('hint').hidden = false;
+        if (to === 'desktop') {
+          title.textContent = failed ? title.textContent : 'Finishing sign-in on this computer…';
+          text.textContent = failed || 'CutVid must be open on this computer. You can close this tab afterwards.';
+        }
+        // Mobile browsers may require a tap for custom-scheme links, hence the visible button as well.
+        location.href = url;
+      })();
+    </script>
+  </body>
+</html>

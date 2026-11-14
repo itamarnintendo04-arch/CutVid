@@ -89,10 +89,20 @@ async function userId(c: SupabaseClient): Promise<string> {
 
 // ---- sign-in ------------------------------------------------------------------------------
 
+/**
+ * Public address of the CutVid web app, without a trailing slash (e.g. https://cutvid.example.com).
+ * When set, the apps sign in through its /auth.html bridge page, which shows a branded
+ * "Returning to CutVid" screen and hands the result back to the app. When empty, Supabase
+ * redirects straight to the app's URL scheme / loopback address instead.
+ */
+const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) || '').replace(/\/+$/, '');
+
 /** Where Supabase should send the user back to. Each of these must be allowed under Auth → URL Configuration. */
 export function redirectUrl(): string {
-  if (Capacitor.isNativePlatform()) return NATIVE_REDIRECT;
-  if (window.cutvidAuth) return DESKTOP_REDIRECT;
+  const native = Capacitor.isNativePlatform();
+  const desktop = !!window.cutvidAuth;
+  if (native) return SITE_URL ? `${SITE_URL}/auth.html?to=app` : NATIVE_REDIRECT;
+  if (desktop) return SITE_URL ? `${SITE_URL}/auth.html?to=desktop` : DESKTOP_REDIRECT;
   return location.origin + location.pathname;
 }
 
