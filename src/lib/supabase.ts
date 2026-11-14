@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Project } from '../types';
+import { Capacitor } from '@capacitor/core';
 import { media } from '../engine/media';
 
 const LS_KEY = 'cutvid:supabase';
@@ -25,6 +26,20 @@ export function getConfig(): SupabaseConfig | null {
   return null;
 }
 
+declare global {
+  interface Window {
+    /** Electron only: opens the system browser (when a URL is given) and resolves with the loopback callback URL. */
+    cutvidAuth?: { start: (url: string | null) => Promise<string> };
+  }
+}
+
+export const NATIVE_REDIRECT = 'com.cutvid.app://auth';
+export const DESKTOP_REDIRECT = 'http://127.0.0.1:47823/callback';
+
+/** True after a password-reset link was opened; the cloud dialog then asks for a new password. */
+export let recoveryPending = false;
+export const clearRecovery = () => void (recoveryPending = false);
+
 let client: SupabaseClient | null = null;
 let clientFor = '';
 
@@ -43,8 +58,15 @@ export function supabase(): SupabaseClient | null {
   if (!cfg) return null;
   const id = cfg.url + cfg.key;
   if (!client || clientFor !== id) {
-    client = createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true } });
+    // PKCE: redirects come back with ?code=…, which works for web, deep links and the desktop loopback alike.
+    client = createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true, flowType: 'pkce', detectSessionInUrl: true } });
     clientFor = id;
+    client.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        recoveryPending = true;
+        window.dispatchEvent(new Event('cutvid:recovery'));
+      }
+    });
   }
   return client;
 }
@@ -59,6 +81,64 @@ async function userId(c: SupabaseClient): Promise<string> {
   const { data } = await c.auth.getUser();
   if (!data.user) throw new Error('Not signed in');
   return data.user.id;
+}
+
+// ---- sign-in ------------------------------------------------------------------------------
+
+/** Where Supabase should send the user back to. Each of these must be allowed under Auth → URL Configuration. */
+export function redirectUrl(): string {
+  if (Capacitor.isNativePlatform()) return NATIVE_REDIRECT;
+  if (window.cutvidAuth) return DESKTOP_REDIRECT;
+  return location.origin + location.pathname;
+}
+
+/** Finish a redirect that came back to the app (deep link or desktop loopback). */
+export async function completeAuth(url: string) {
+  const u = new URL(url);
+  const params = new URLSearchParams(u.search || u.hash.replace(/^#/, ''));
+  const problem = params.get('error_description') ?? params.get('error');
+  if (problem) throw new Error(problem);
+  const code = params.get('code');
+  if (!code) throw new Error('The sign-in link did not contain a code');
+  const { error } = await need().auth.exchangeCodeForSession(code);
+  if (error) throw new Error(error.message);
+}
+
+export async function signInWithGoogle() {
+  const c = need();
+  const native = Capacitor.isNativePlatform();
+  const desktop = !!window.cutvidAuth;
+  const { data, error } = await c.auth.signInWithOAuth({
+    provider: 'google',
+    // In a plain browser Supabase navigates the page itself; the shells open an external browser instead.
+    options: { redirectTo: redirectUrl(), skipBrowserRedirect: native || desktop },
+  });
+  if (error) throw new Error(error.message);
+  if (native) {
+    const { Browser } = await import('@capacitor/browser');
+    await Browser.open({ url: data.url }); // the appUrlOpen listener completes the flow
+  } else if (desktop) {
+    await completeAuth(await window.cutvidAuth!.start(data.url));
+  }
+}
+
+export async function sendPasswordReset(email: string) {
+  const { error } = await need().auth.resetPasswordForEmail(email, { redirectTo: redirectUrl() });
+  if (error) throw new Error(error.message);
+  // On desktop, wait for the emailed link to be opened on this computer.
+  if (window.cutvidAuth) window.cutvidAuth.start(null).then(completeAuth).catch(() => {});
+}
+
+/** iOS / Android: handle com.cutvid.app:// links (Google sign-in, password reset). */
+export async function initNativeAuth() {
+  if (!Capacitor.isNativePlatform()) return;
+  const { App } = await import('@capacitor/app');
+  const { Browser } = await import('@capacitor/browser');
+  App.addListener('appUrlOpen', ({ url }) => {
+    if (!url.startsWith(NATIVE_REDIRECT)) return;
+    Browser.close().catch(() => {});
+    completeAuth(url).catch((e) => window.dispatchEvent(new CustomEvent('cutvid:auth-error', { detail: (e as Error).message })));
+  });
 }
 
 export interface CloudProject {

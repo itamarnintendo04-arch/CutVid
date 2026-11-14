@@ -39,6 +39,13 @@ export function App() {
         .catch(() => {});
   }, []);
 
+  // A password-reset link was opened: show the dialog that asks for the new password.
+  useEffect(() => {
+    const open = () => setDialog('cloud');
+    window.addEventListener('cutvid:recovery', open);
+    return () => window.removeEventListener('cutvid:recovery', open);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;

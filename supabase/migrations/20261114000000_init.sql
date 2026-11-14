@@ -1,4 +1,4 @@
--- CutVid cloud schema. Run once in Supabase → SQL Editor.
+-- CutVid cloud schema. Applied automatically by the Supabase GitHub integration (or paste into the SQL Editor).
 
 -- 1) Projects: one JSON document per project, private to its owner.
 create table if not exists public.projects (

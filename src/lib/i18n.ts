@@ -164,6 +164,15 @@ const he = {
   sug1: 'פתיח אנימטיבי של 5 שניות לערוץ בשם CutVid',
   sug2: 'כותרת תחתונה (lower third) עם שם ותפקיד',
   sug3: 'ספירה לאחור 3‑2‑1 עם זום',
+  google: 'המשך עם Google',
+  orEmail: 'או עם אימייל',
+  forgotPassword: 'שכחתי סיסמה',
+  resetSent: 'נשלח אימייל לאיפוס הסיסמה.',
+  enterEmailFirst: 'הזינו קודם אימייל',
+  newPassword: 'סיסמה חדשה',
+  updatePassword: 'עדכן סיסמה',
+  passwordUpdated: 'הסיסמה עודכנה',
+  googleWaiting: 'ממשיכים בדפדפן…',
   sug4: 'סדר את הקליפים שלי ברצף עם מעברי fade',
 };
 
@@ -331,6 +340,15 @@ const en: Record<Key, string> = {
   sug1: 'A 5-second animated intro for a channel called CutVid',
   sug2: 'A lower third with a name and a job title',
   sug3: 'A 3-2-1 countdown with zoom',
+  google: 'Continue with Google',
+  orEmail: 'or with email',
+  forgotPassword: 'Forgot password?',
+  resetSent: 'Password reset email sent.',
+  enterEmailFirst: 'Enter your email first',
+  newPassword: 'New password',
+  updatePassword: 'Update password',
+  passwordUpdated: 'Password updated',
+  googleWaiting: 'Continue in the browser…',
   sug4: 'Arrange my clips in sequence with fade transitions',
 };
 

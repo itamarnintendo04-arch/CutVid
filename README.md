@@ -60,21 +60,52 @@ npm run cap:ios       # יוצר ios/     → npx cap open ios  (דורש Mac + 
 
 ## חיבור Supabase
 
-1. פותחים פרויקט ב‑[supabase.com](https://supabase.com) (התוכנית החינמית מספיקה).
-2. **SQL Editor → New query** – מדביקים את התוכן של [`supabase/schema.sql`](supabase/schema.sql) ומריצים.
-   זה יוצר טבלת `projects` עם RLS ובאקט פרטי `media`, כך שכל משתמש רואה רק את הקבצים שלו.
-3. **Project Settings → API** – מעתיקים את ה‑`Project URL` ואת מפתח ה‑`anon` / `publishable`.
-4. מחברים את האפליקציה באחת משתי דרכים:
-   - **בתוך האפליקציה** – כפתור "ענן", מדביקים URL ומפתח. נשמר במכשיר, לא דורש בנייה מחדש.
-   - **בזמן הבנייה** – מעתיקים `.env.example` ל‑`.env` וממלאים `VITE_SUPABASE_URL` ו‑`VITE_SUPABASE_ANON_KEY`.
-     ב‑GitHub Actions מוסיפים את אותם שני שמות תחת *Settings → Secrets and variables → Actions*.
-5. בכפתור "ענן": הרשמה/כניסה עם אימייל וסיסמה → "שמור פרויקט לענן". במכשיר אחר נכנסים לאותו חשבון ולוחצים "פתח".
+### 1. מסד הנתונים
 
-הערות:
+- **עם תוסף ה‑GitHub של Supabase** (Project Settings → Integrations → GitHub): התיקייה `supabase/` במאגר מכילה את `config.toml` ואת [`migrations/`](supabase/migrations). אחרי מיזוג לענף הראשי התוסף מריץ את המיגרציות ופורס את פונקציית ה‑AI אוטומטית. ודאו שב‑"Supabase directory" כתוב `supabase` וש‑"Deploy to production" פעיל.
+- **ידנית**: SQL Editor → New query → מדביקים את [`supabase/migrations/20261114000000_init.sql`](supabase/migrations/20261114000000_init.sql) ומריצים.
 
-- מפתח ה‑`anon` מיועד לצד הלקוח ובטוח לשיבוץ באפליקציה – ההגנה היא ב‑RLS. **לעולם לא** לשים את מפתח ה‑`service_role` באפליקציה.
-- כברירת מחדל Supabase שולח אימייל אימות בהרשמה. לבדיקות אפשר לכבות: *Authentication → Sign In / Providers → Email → Confirm email*.
-- בתוכנית החינמית קובץ בודד ב‑Storage מוגבל ל‑50MB (ניתן לשינוי ב‑*Storage → Settings*).
+המיגרציה יוצרת טבלת `projects` עם RLS ובאקט פרטי `media`, כך שכל משתמש רואה רק את הקבצים שלו.
+
+### 2. חיבור האפליקציה
+
+**Project Settings → API** – מעתיקים את ה‑`Project URL` ואת מפתח ה‑`anon` / `publishable`, ואז:
+
+- **בתוך האפליקציה** – כפתור Cloud, מדביקים URL ומפתח. נשמר במכשיר.
+- **מובנה בבנייה** – ב‑GitHub: *Settings → Secrets and variables → Actions* מוסיפים `VITE_SUPABASE_URL` ו‑`VITE_SUPABASE_ANON_KEY` (מקומית: `.env` לפי `.env.example`).
+
+מפתח ה‑`anon` בטוח לצד הלקוח – ההגנה היא ב‑RLS. **לעולם לא** לשים את `service_role` באפליקציה.
+
+### 3. כתובות חזרה (חובה ל‑Google ולאיפוס סיסמה)
+
+**Authentication → URL Configuration → Redirect URLs** – מוסיפים:
+
+| כתובת | בשביל |
+| --- | --- |
+| `com.cutvid.app://auth` | iPhone / Android |
+| `http://127.0.0.1:47823/callback` | Windows / macOS |
+| כתובת האתר שלכם (למשל `https://cutvid.example.com/`) | גרסת הדפדפן |
+
+### 4. התחברות עם Google
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → **OAuth consent screen** – ממלאים שם אפליקציה ואימייל.
+2. **Credentials → Create credentials → OAuth client ID** מסוג **Web application**.
+3. תחת *Authorized redirect URIs* מוסיפים: `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
+4. ב‑Supabase: **Authentication → Sign In / Providers → Google** – מפעילים ומדביקים את ה‑Client ID וה‑Client Secret.
+
+באפליקציה: Cloud → **Continue with Google**. במובייל ובדסקטופ ההתחברות נפתחת בדפדפן המערכת וחוזרת לאפליקציה.
+
+### 5. SMTP (אימיילים של אימות ואיפוס סיסמה)
+
+שרת המייל המובנה של Supabase מוגבל לכמה הודעות בשעה ורק לכתובות של חברי הצוות, ולכן לשימוש אמיתי מחברים SMTP משלכם:
+
+1. פותחים חשבון אצל ספק מיילים (Resend, Brevo, SendGrid, Mailgun, Amazon SES…) ומאמתים דומיין שולח.
+2. ב‑Supabase: **Authentication → Emails → SMTP Settings → Enable custom SMTP** וממלאים Host, Port, Username, Password, כתובת שולח ושם שולח לפי הספק (ב‑Resend למשל: `smtp.resend.com`, פורט `465`, משתמש `resend`, והסיסמה היא ה‑API key).
+3. שומרים, ואז ב‑**Authentication → Rate Limits** מעלים את מגבלת המיילים לשעה לפי הצורך.
+
+אחרי זה הרשמה באימייל שולחת מייל אימות, ו‑**Forgot password?** שולח קישור איפוס שחוזר לאפליקציה ומבקש סיסמה חדשה (בדסקטופ צריך לפתוח את הקישור באותו מחשב בתוך 15 דקות).
+
+בתוכנית החינמית קובץ בודד ב‑Storage מוגבל ל‑50MB (ניתן לשינוי ב‑*Storage → Settings*).
 
 ## CutVid AI
 
@@ -108,6 +139,7 @@ supabase functions deploy cutvid-ai
 - הייצוא דורש WebCodecs: Chrome/Edge/Electron/Android WebView, ו‑Safari/iOS 16.4 ומעלה. ב‑iOS ישן מ‑26 אין מקודד אודיו ולכן הקובץ ייצא ללא קול.
 - פילטרי צבע נשענים על `CanvasRenderingContext2D.filter`; בגרסאות Safari/iOS שלא תומכות בו הם מדולגים.
 - שינוי מהירות משנה גם את גובה הצליל בקובץ המיוצא.
+- התחברות עם Google ואיפוס סיסמה נבדקו רק עד שלב ההפניה ל‑Supabase; הזרימה המלאה (כולל החזרה לאפליקציה במובייל ובדסקטופ) לא הורצה מול פרויקט אמיתי.
 - ה‑AI נבדק מול שרת ספק מדומה (תואם‑OpenAI); החיבור לספקים אמיתיים ופונקציית ה‑Edge לא הורצו מול מפתח אמיתי.
 - הייצוא נבדק ב‑Chromium בלבד; העטיפות ל‑iOS/Android/Windows/macOS נבנות ב‑CI ולא נבדקו על מכשירים אמיתיים.
 
@@ -119,5 +151,6 @@ src/components/  Timeline · Preview · Inspector · Library · דיאלוגים
 src/ai/       providers.ts (ספקים ומודלים) · assistant.ts (פרומפט והחלת פעולות) · http.ts
 src/lib/      supabase.ts · db.ts (IndexedDB) · save.ts · i18n.ts
 electron/     מעטפת דסקטופ        capacitor.config.ts  מעטפת מובייל
-supabase/     schema.sql · functions/cutvid-ai
+supabase/     config.toml · migrations/ · functions/cutvid-ai
+scripts/      patch-native.mjs (רישום com.cutvid.app:// באנדרואיד וב‑iOS)
 ```

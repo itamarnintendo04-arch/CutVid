@@ -15,8 +15,8 @@
     "dist:win": "npm run build && electron-builder --win --publish never",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
     "dist:linux": "npm run build && electron-builder --linux --publish never",
-    "cap:android": "npm run build && (test -d android || npx cap add android) && npx cap sync android",
-    "cap:ios": "npm run build && (test -d ios || npx cap add ios) && npx cap sync ios"
+    "cap:android": "npm run build && (test -d android || npx cap add android) && node scripts/patch-native.mjs && npx cap sync android",
+    "cap:ios": "npm run build && (test -d ios || npx cap add ios) && node scripts/patch-native.mjs && npx cap sync ios"
   },
   "build": {
     "appId": "com.cutvid.app",
@@ -75,6 +75,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
     "@capacitor/core": "^8.6.2",
     "@capacitor/filesystem": "^8.1.5",
     "@capacitor/share": "^8.0.3",

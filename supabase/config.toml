@@ -1,0 +1,7 @@
+# Read by the Supabase CLI and the Supabase GitHub integration.
+# Auth providers, redirect URLs and SMTP are configured in the Supabase dashboard
+# (they involve secrets), so they are intentionally not declared here.
+project_id = "cutvid"
+
+[functions.cutvid-ai]
+verify_jwt = true

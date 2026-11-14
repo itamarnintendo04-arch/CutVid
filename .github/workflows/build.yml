@@ -46,6 +46,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npx cap add android
+      - run: node scripts/patch-native.mjs
       - name: App icons
         continue-on-error: true
         run: npx --yes @capacitor/assets generate --android
@@ -96,6 +97,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npx cap add ios
+      - run: node scripts/patch-native.mjs
       - name: App icons
         continue-on-error: true
         run: npx --yes @capacitor/assets generate --ios

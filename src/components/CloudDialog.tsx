@@ -3,7 +3,7 @@ import { CloudDownload, CloudUpload, LogOut, Trash2 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { useStore } from '../store';
 import { useT } from '../lib/i18n';
-import { clearConfig, cloudDelete, cloudList, cloudLoad, cloudSave, getConfig, setConfig, supabase, type CloudProject } from '../lib/supabase';
+import { clearConfig, clearRecovery, cloudDelete, cloudList, cloudLoad, cloudSave, getConfig, recoveryPending, sendPasswordReset, setConfig, signInWithGoogle, supabase, type CloudProject } from '../lib/supabase';
 import { Dialog } from './ui';
 
 export function CloudDialog({ onClose }: { onClose: () => void }) {
@@ -18,6 +18,8 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [working, setWorking] = useState(false);
+  const [recovering, setRecovering] = useState(recoveryPending);
+  const [newPassword, setNewPassword] = useState('');
 
   const refresh = () =>
     cloudList()
@@ -31,6 +33,17 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
     const { data } = c.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
     return () => data.subscription.unsubscribe();
   }, [cfg]);
+
+  useEffect(() => {
+    const onRecovery = () => setRecovering(true);
+    const onAuthError = (e: Event) => setError(String((e as CustomEvent).detail));
+    window.addEventListener('cutvid:recovery', onRecovery);
+    window.addEventListener('cutvid:auth-error', onAuthError);
+    return () => {
+      window.removeEventListener('cutvid:recovery', onRecovery);
+      window.removeEventListener('cutvid:auth-error', onAuthError);
+    };
+  }, []);
 
   useEffect(() => {
     if (user) refresh();
@@ -65,6 +78,30 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
       if (mode === 'up' && !res.data.session) setStatus(t('checkEmail'));
     });
 
+  const google = () =>
+    run(async () => {
+      setStatus(t('googleWaiting'));
+      await signInWithGoogle();
+      setStatus('');
+    });
+
+  const forgot = () =>
+    run(async () => {
+      if (!email.trim()) throw new Error(t('enterEmailFirst'));
+      await sendPasswordReset(email.trim());
+      setStatus(t('resetSent'));
+    });
+
+  const updatePassword = () =>
+    run(async () => {
+      const { error } = await supabase()!.auth.updateUser({ password: newPassword });
+      if (error) throw new Error(error.message);
+      clearRecovery();
+      setRecovering(false);
+      setNewPassword('');
+      setStatus(t('passwordUpdated') + ' ✓');
+    });
+
   const save = () =>
     run(async () => {
       await cloudSave(useStore.getState().project, setStatus);
@@ -97,11 +134,31 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
             {t('connect')}
           </button>
         </div>
+      ) : recovering && user ? (
+        <div className="stack">
+          <label className="field">
+            <span className="field-label">{t('newPassword')}</span>
+            <input dir="ltr" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+          </label>
+          <button className="primary" disabled={working || newPassword.length < 6} onClick={updatePassword}>
+            {t('updatePassword')}
+          </button>
+        </div>
       ) : !user ? (
         <div className="stack">
           <p className="muted" dir="ltr">
             {cfg.url}
           </p>
+          <button className="google-btn" disabled={working} onClick={google}>
+            <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.2C12.4 13.6 17.7 9.5 24 9.5z" />
+              <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.500-4.800 7.200l7.700 6c4.500-4.200 6.900-10.300 6.900-17.700z" />
+              <path fill="#FBBC05" d="M10.500 28.600c-.5-1.400-.8-3-.8-4.600s.3-3.200.8-4.600l-7.900-6.200C1 16.500 0 20.100 0 24s1 7.500 2.600 10.800l7.900-6.200z" />
+              <path fill="#34A853" d="M24 48c6.500 0 11.900-2.100 15.900-5.800l-7.700-6c-2.200 1.500-4.900 2.300-8.200 2.300-6.300 0-11.600-4.100-13.500-9.900l-7.900 6.200C6.500 42.600 14.600 48 24 48z" />
+            </svg>
+            {t('google')}
+          </button>
+          <div className="divider">{t('orEmail')}</div>
           <label className="field">
             <span className="field-label">{t('email')}</span>
             <input dir="ltr" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -116,6 +173,9 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
             </button>
             <button disabled={working} onClick={() => auth('up')}>
               {t('signUp')}
+            </button>
+            <button className="link-btn" disabled={working} onClick={forgot}>
+              {t('forgotPassword')}
             </button>
             <span className="spacer" />
             {cfg.fromEnv ? (
