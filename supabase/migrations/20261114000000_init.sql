@@ -16,8 +16,8 @@ alter table public.projects enable row level security;
 drop policy if exists "projects are private to their owner" on public.projects;
 create policy "projects are private to their owner" on public.projects
   for all to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 -- 2) Media: private bucket, each user may only touch files under a folder named by their user id.
 insert into storage.buckets (id, name, public)
@@ -27,19 +27,19 @@ on conflict (id) do nothing;
 drop policy if exists "media select own" on storage.objects;
 create policy "media select own" on storage.objects
   for select to authenticated
-  using (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 drop policy if exists "media insert own" on storage.objects;
 create policy "media insert own" on storage.objects
   for insert to authenticated
-  with check (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 drop policy if exists "media update own" on storage.objects;
 create policy "media update own" on storage.objects
   for update to authenticated
-  using (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 drop policy if exists "media delete own" on storage.objects;
 create policy "media delete own" on storage.objects
   for delete to authenticated
-  using (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text);

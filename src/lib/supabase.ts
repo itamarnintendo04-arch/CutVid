@@ -4,6 +4,10 @@ import { Capacitor } from '@capacitor/core';
 import { media } from '../engine/media';
 
 const LS_KEY = 'cutvid:supabase';
+// The CutVid Supabase project. A publishable key is meant to ship inside client apps;
+// row-level security is what protects the data. Build-time env vars override these.
+const DEFAULT_URL = 'https://btrwboxwbinqewgvlcal.supabase.co';
+const DEFAULT_KEY = 'sb_publishable_g2aYTfsQhep44Ta1VIIJfQ_GQnA5ODh';
 const BUCKET = 'media';
 
 export interface SupabaseConfig {
@@ -12,10 +16,10 @@ export interface SupabaseConfig {
   fromEnv: boolean;
 }
 
-/** Build-time env vars win; otherwise the values entered in the in-app dialog are used. */
+/** The app ships connected to the CutVid project; build-time env vars can point it elsewhere. */
 export function getConfig(): SupabaseConfig | null {
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || DEFAULT_URL;
+  const key = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || DEFAULT_KEY;
   if (url && key) return { url, key, fromEnv: true };
   try {
     const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
