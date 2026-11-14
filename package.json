@@ -63,14 +63,14 @@
       ],
       "category": "AudioVideo"
     },
-    "artifactName": "CutVid-${version}-${os}-${arch}.${ext}",
+    "artifactName": "CutVid-${os}-${arch}.${ext}",
     "portable": {
-      "artifactName": "CutVid-${version}-portable.${ext}"
+      "artifactName": "CutVid-portable.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "CutVid-${version}-setup.${ext}"
+      "artifactName": "CutVid-setup.${ext}"
     }
   },
   "dependencies": {

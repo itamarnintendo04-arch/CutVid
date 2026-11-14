@@ -7,3 +7,4 @@ ios
 .env.local
 *.log
 .DS_Store
+site-dist

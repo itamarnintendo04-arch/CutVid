@@ -51,8 +51,11 @@
           text.className = 'err';
         }
         if (!targets[to]) {
-          // Web version: the editor itself finishes the sign-in.
-          location.replace('./' + tail);
+          // Opened without a destination (e.g. an old link): there is nothing to hand over to.
+          if (!failed) {
+            title.textContent = 'Open CutVid to continue';
+            text.textContent = 'Sign-in links only work from inside the CutVid app.';
+          }
           return;
         }
         var url = targets[to] + tail;

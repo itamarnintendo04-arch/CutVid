@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0c10" />
+    <meta name="description" content="CutVid is a video editor for iPhone, Android, Windows and Mac: multi-track timeline, keyframes with graphs, effects, overlays, text styles and an AI assistant." />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <title>CutVid – video editor for iPhone, Android, Windows and Mac</title>
+    <style>
+      :root { --bg: #0b0c10; --panel: #14161c; --panel-2: #1b1e26; --line: #262a35; --text: #e8eaf0; --muted: #9499a8; --accent: #7c5cff; --accent-2: #19d3c5; color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+      a { color: var(--accent-2); }
+      .wrap { width: min(1080px, 100% - 40px); margin: 0 auto; }
+      header { position: sticky; top: 0; z-index: 5; background: rgba(11, 12, 16, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+      header .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; color: var(--text); text-decoration: none; }
+      .brand img { border-radius: 8px; }
+      nav { margin-inline-start: auto; display: flex; gap: 18px; }
+      nav a { color: var(--muted); text-decoration: none; font-size: 15px; }
+      nav a:hover { color: var(--text); }
+      .hero { padding: 72px 0 40px; text-align: center; }
+      h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.08; margin: 0 0 18px; letter-spacing: -0.02em; text-wrap: balance; }
+      h1 span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .lead { color: var(--muted); font-size: clamp(16px, 2.2vw, 20px); max-width: 640px; margin: 0 auto 28px; text-wrap: pretty; }
+      .btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; padding: 13px 24px; border-radius: 12px; border: 1px solid var(--accent); cursor: pointer; font: inherit; font-weight: 600; }
+      .btn:hover { background: #8d70ff; }
+      .btn.ghost { background: var(--panel-2); border-color: var(--line); color: var(--text); }
+      .btn.ghost:hover { border-color: #3a4050; background: #222632; }
+      .shot { margin: 44px auto 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
+      .shot img { display: block; width: 100%; height: auto; }
+      section { padding: 64px 0; }
+      h2 { font-size: clamp(24px, 3.4vw, 34px); margin: 0 0 8px; letter-spacing: -0.01em; }
+      .sub { color: var(--muted); margin: 0 0 28px; max-width: 620px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+      .card h3 { margin: 0 0 6px; font-size: 17px; }
+      .card p { margin: 0; color: var(--muted); font-size: 15px; }
+      .dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+      .dl .card { display: flex; flex-direction: column; gap: 10px; }
+      .dl .card.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+      .dl .tag { align-self: flex-start; font-size: 11.5px; font-weight: 600; color: var(--accent-2); border: 1px solid var(--accent-2); border-radius: 999px; padding: 1px 9px; visibility: hidden; }
+      .dl .mine .tag { visibility: visible; }
+      .dl .links { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+      .dl .btn { justify-content: center; padding: 11px 14px; }
+      .note { font-size: 13.5px; color: var(--muted); margin: 0; }
+      ol { margin: 0; padding-inline-start: 20px; color: var(--muted); }
+      ol li { margin-bottom: 6px; }
+      form { display: flex; flex-direction: column; gap: 12px; max-width: 560px; }
+      textarea, input[type="email"] { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; color: var(--text); font: inherit; width: 100%; }
+      textarea { min-height: 130px; resize: vertical; }
+      textarea:focus-visible, input:focus-visible, .btn:focus-visible, .star:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .stars { display: flex; gap: 2px; }
+      .star { background: none; border: 0; padding: 2px 4px; font-size: 30px; line-height: 1; color: #4a5060; cursor: pointer; }
+      .star.on { color: #ffd84a; }
+      #fb-status { margin: 0; min-height: 1.5em; }
+      .ok { color: #3ddc97; font-weight: 600; }
+      .err { color: #ff5c7a; }
+      footer { border-top: 1px solid var(--line); padding: 26px 0 40px; color: var(--muted); font-size: 14px; }
+      @media (max-width: 640px) { nav a:not(.keep) { display: none; } .hero { padding-top: 44px; } section { padding: 44px 0; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <a class="brand" href="./"><img src="./icon.svg" width="30" height="30" alt="" />CutVid</a>
+        <nav>
+          <a href="#features">Features</a>
+          <a href="#install">How to install</a>
+          <a href="#feedback">Feedback</a>
+          <a class="keep" href="#download">Download</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="wrap hero">
+        <h1>Edit video on <span>any device</span></h1>
+        <p class="lead">CutVid is a full video editor for iPhone, Android, Windows and Mac: a multi-track timeline, keyframes with graphs, effects, overlays, styled text and an AI assistant that builds scenes for you.</p>
+        <a class="btn" id="hero-dl" href="#download">Download CutVid</a>
+        <div class="shot"><img src="./screenshot.jpg" width="1800" height="1075" alt="The CutVid editor: a preview with glowing text, a keyframes panel with graph presets, and a four-layer timeline." /></div>
+      </div>
+
+      <section id="features">
+        <div class="wrap">
+          <h2>Everything on one timeline</h2>
+          <p class="sub">The same editor and the same projects on every platform.</p>
+          <div class="grid">
+            <div class="card"><h3>Multi-track editing</h3><p>Unlimited video and audio layers. Trim, split, snap, duplicate, undo.</p></div>
+            <div class="card"><h3>Keyframes and graphs</h3><p>Animate position, size, rotation and opacity with 25 ready-made curves or draw your own.</p></div>
+            <div class="card"><h3>Effects and transitions</h3><p>Glitch, RGB split, shake, pixelate, film grain and 19 in/out transitions.</p></div>
+            <div class="card"><h3>Text that stands out</h3><p>16 styles, glow, outlines and 21 built-in fonts, including Hebrew.</p></div>
+            <div class="card"><h3>Elements and overlays</h3><p>Shapes, gradients, stickers, light leaks, letterbox bars, vignettes and blend modes.</p></div>
+            <div class="card"><h3>Green screen and filters</h3><p>Chroma key, 14 colour presets and full manual control.</p></div>
+            <div class="card"><h3>CutVid AI</h3><p>Describe an intro, a lower third or a countdown and the assistant builds it on your timeline.</p></div>
+            <div class="card"><h3>Export up to 4K</h3><p>MP4 at the resolution and frame rate you pick, saved straight to your gallery.</p></div>
+            <div class="card"><h3>Your account</h3><p>Sign in with Google or email to back up projects and keep your own presets.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="download">
+        <div class="wrap">
+          <h2>Download</h2>
+          <p class="sub">Free. Pick your device.</p>
+          <div class="dl">
+            <div class="card" data-os="ios">
+              <span class="tag">Your device</span>
+              <h3>iPhone and iPad</h3>
+              <p>Installed with Sideloadly or AltStore.</p>
+              <div class="links"><a class="btn" data-file="CutVid-ios-unsigned.ipa">Download IPA</a></div>
+            </div>
+            <div class="card" data-os="android">
+              <span class="tag">Your device</span>
+              <h3>Android</h3>
+              <p>Android 7 or newer.</p>
+              <div class="links"><a class="btn" data-file="CutVid-android.apk">Download APK</a></div>
+            </div>
+            <div class="card" data-os="windows">
+              <span class="tag">Your device</span>
+              <h3>Windows</h3>
+              <p>Windows 10 or 11, 64-bit.</p>
+              <div class="links">
+                <a class="btn" data-file="CutVid-setup.exe">Download installer</a>
+                <a class="btn ghost" data-file="CutVid-portable.exe">Portable version</a>
+              </div>
+            </div>
+            <div class="card" data-os="mac">
+              <span class="tag">Your device</span>
+              <h3>Mac</h3>
+              <p>macOS 12 or newer.</p>
+              <div class="links">
+                <a class="btn" data-file="CutVid-mac-arm64.dmg">Apple Silicon</a>
+                <a class="btn ghost" data-file="CutVid-mac-x64.dmg">Intel</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="install">
+        <div class="wrap">
+          <h2>How to install</h2>
+          <p class="sub">CutVid is not in the app stores yet, so the first install takes a few extra taps.</p>
+          <div class="grid">
+            <div class="card"><h3>iPhone and iPad</h3><ol><li>Install <a href="https://sideloadly.io" rel="noopener">Sideloadly</a> on a computer.</li><li>Connect your iPhone with a cable and drag the IPA into Sideloadly.</li><li>Enter your Apple ID and press Start.</li><li>On the iPhone: Settings → General → VPN &amp; Device Management → trust your Apple ID.</li></ol></div>
+            <div class="card"><h3>Android</h3><ol><li>Open the downloaded APK.</li><li>If asked, allow your browser to install apps.</li><li>Tap Install.</li></ol></div>
+            <div class="card"><h3>Windows</h3><ol><li>Run the installer.</li><li>If SmartScreen appears, choose More info → Run anyway.</li></ol></div>
+            <div class="card"><h3>Mac</h3><ol><li>Open the DMG and drag CutVid to Applications.</li><li>The first time, right-click CutVid and choose Open.</li></ol></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="feedback">
+        <div class="wrap">
+          <h2>Feedback</h2>
+          <p class="sub">What works, what is missing, what is broken? Every note is read.</p>
+          <form id="fb">
+            <div class="stars" role="radiogroup" aria-label="Rating">
+              <button type="button" class="star" data-n="1" role="radio" aria-checked="false" aria-label="1 star">★</button>
+              <button type="button" class="star" data-n="2" role="radio" aria-checked="false" aria-label="2 stars">★</button>
+              <button type="button" class="star" data-n="3" role="radio" aria-checked="false" aria-label="3 stars">★</button>
+              <button type="button" class="star" data-n="4" role="radio" aria-checked="false" aria-label="4 stars">★</button>
+              <button type="button" class="star" data-n="5" role="radio" aria-checked="false" aria-label="5 stars">★</button>
+            </div>
+            <label>Your message<textarea id="fb-msg" maxlength="4000" dir="auto" required></textarea></label>
+            <label>Email for a reply (optional)<input id="fb-email" type="email" autocomplete="email" maxlength="200" /></label>
+            <button class="btn" type="submit" id="fb-send" style="align-self: flex-start">Send feedback</button>
+            <p id="fb-status" role="status"></p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer><div class="wrap">CutVid · video editing on every device</div></footer>
+
+    <script>
+      // ---- downloads: always the newest published build ----
+      var RELEASES = 'https://github.com/itamarnintendo04-arch/CutVid/releases/latest/download/';
+      document.querySelectorAll('[data-file]').forEach(function (a) {
+        a.href = RELEASES + a.getAttribute('data-file');
+      });
+      var ua = navigator.userAgent;
+      var os = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ios' : /Android/.test(ua) ? 'android' : /Windows/.test(ua) ? 'windows' : /Macintosh/.test(ua) ? 'mac' : '';
+      var mine = os && document.querySelector('[data-os="' + os + '"]');
+      if (mine) {
+        mine.classList.add('mine');
+        mine.parentNode.insertBefore(mine, mine.parentNode.firstChild);
+      }
+
+      // ---- feedback: stored in the CutVid database (write-only for visitors) ----
+      var API = 'https://btrwboxwbinqewgvlcal.supabase.co/rest/v1/feedback';
+      var KEY = 'sb_publishable_g2aYTfsQhep44Ta1VIIJfQ_GQnA5ODh';
+      var rating = 0;
+      var stars = document.querySelectorAll('.star');
+      stars.forEach(function (s) {
+        s.addEventListener('click', function () {
+          var n = +s.getAttribute('data-n');
+          rating = n === rating ? 0 : n;
+          stars.forEach(function (x) {
+            var on = +x.getAttribute('data-n') <= rating;
+            x.classList.toggle('on', on);
+            x.setAttribute('aria-checked', String(+x.getAttribute('data-n') === rating));
+          });
+        });
+      });
+      document.getElementById('fb').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var status = document.getElementById('fb-status');
+        var send = document.getElementById('fb-send');
+        var msg = document.getElementById('fb-msg').value.trim();
+        if (msg.length < 3) return;
+        send.disabled = true;
+        status.className = '';
+        status.textContent = 'Sending…';
+        fetch(API, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', apikey: KEY, authorization: 'Bearer ' + KEY, prefer: 'return=minimal' },
+          body: JSON.stringify({ message: msg, rating: rating || null, email: document.getElementById('fb-email').value.trim() || null, platform: 'website' }),
+        })
+          .then(function (res) {
+            if (!res.ok) throw new Error('Could not send (' + res.status + '). Please try again.');
+            status.className = 'ok';
+            status.textContent = 'Thank you! Your feedback was sent.';
+            e.target.reset();
+            rating = 0;
+            stars.forEach(function (x) { x.classList.remove('on'); });
+          })
+          .catch(function (err) {
+            status.className = 'err';
+            status.textContent = err.message || 'Could not send. Please try again.';
+          })
+          .then(function () { send.disabled = false; });
+      });
+    </script>
+  </body>
+</html>

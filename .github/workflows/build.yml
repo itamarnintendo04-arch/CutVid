@@ -6,7 +6,7 @@ on:
   push:
     branches: [main, 'claude/**']
     # Docs and Supabase-only changes do not need new app builds (macOS minutes are expensive).
-    paths-ignore: ['supabase/**', '**.md', 'vercel.json']
+    paths-ignore: ['supabase/**', '**.md', 'vercel.json', 'site/**']
     tags: ['v*']
   workflow_dispatch:
 
@@ -147,7 +147,8 @@ jobs:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
           name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('CutVid build {0}', github.run_number) }}
           target_commitish: ${{ github.sha }}
-          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          # Not a prerelease: the website links to releases/latest/download/<file>.
+          prerelease: false
           make_latest: true
           fail_on_unmatched_files: true
           files: artifacts/*
@@ -155,5 +156,5 @@ jobs:
             Direct downloads:
             - **iPhone / iPad** – `CutVid-ios-unsigned.ipa` (install with Sideloadly or AltStore)
             - **Android** – `CutVid-android.apk`
-            - **Windows** – `CutVid-*-setup.exe` or `CutVid-*-portable.exe`
-            - **macOS** – `CutVid-*-mac-arm64.dmg` (Apple Silicon) or `CutVid-*-mac-x64.dmg` (Intel)
+            - **Windows** – `CutVid-setup.exe` or `CutVid-portable.exe`
+            - **macOS** – `CutVid-mac-arm64.dmg` (Apple Silicon) or `CutVid-mac-x64.dmg` (Intel)
