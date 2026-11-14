@@ -55,7 +55,7 @@ export function loadAiSettings(): AiSettings {
   } catch {
     /* ignore corrupt value */
   }
-  return { provider: 'anthropic', configs: {} };
+  return { provider: 'cutvid', configs: {} };
 }
 
 export function saveAiSettings(s: AiSettings) {
@@ -146,7 +146,17 @@ export async function chat(providerId: string, cfg: ProviderConfig, system: stri
     const { data: session } = await c.auth.getSession();
     if (!session.session) throw new Error('Sign in to the cloud to use CutVid AI');
     const { data, error } = await c.functions.invoke('cutvid-ai', { body: { system, messages } });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // FunctionsHttpError hides the body; surface what the function actually said.
+      let detail = error.message;
+      try {
+        const body = await (error as { context?: Response }).context?.json();
+        if (body?.error) detail = body.error;
+      } catch {
+        /* keep the generic message */
+      }
+      throw new Error(detail);
+    }
     if (data?.error) throw new Error(data.error);
     return String(data?.text ?? '');
   }

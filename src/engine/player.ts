@@ -2,7 +2,7 @@ import { useStore } from '../store';
 import type { Project } from '../types';
 import { projectDuration } from '../types';
 import { media } from './media';
-import { clipGain, drawFrame, type Layout } from './render';
+import { clipGain, drawFrame, fontEvents, type Layout } from './render';
 
 /** Last time we asked each element to seek to — avoids re-seeking in a loop while paused. */
 const requested = new WeakMap<HTMLMediaElement, number>();
@@ -75,8 +75,10 @@ class Player {
 
   constructor() {
     media.onFrame = () => (this.dirty = true);
+    fontEvents.onLoad = () => (this.dirty = true);
     useStore.subscribe((s, prev) => {
       this.dirty = true;
+      media.playing = s.playing;
       if (s.project.clips !== prev.project.clips) media.prune(new Set(s.project.clips.map((c) => c.id)));
       if (prev.playing && !s.playing) media.pauseAll();
     });

@@ -15,6 +15,8 @@ class MediaManager {
   private decoded = new Map<string, Promise<AudioBuffer | null>>();
   private peaks = new Map<string, Float32Array>();
   private audioCtx: AudioContext | null = null;
+  /** Set by the player; lets priming know whether it may pause an element again. */
+  playing = false;
   /** Called whenever a frame became available so the preview can redraw. */
   onFrame: () => void = () => {};
 
@@ -129,6 +131,10 @@ class MediaManager {
         v.removeAttribute('src');
         v.load();
       };
+      const seekForThumb = () => {
+        v.pause();
+        v.currentTime = Math.min(0.5, asset.duration / 2);
+      };
       v.onloadedmetadata = () => {
         asset.width = v.videoWidth;
         asset.height = v.videoHeight;
@@ -138,12 +144,15 @@ class MediaManager {
           v.ontimeupdate = () => {
             v.ontimeupdate = null;
             asset.duration = v.duration;
-            v.currentTime = Math.min(0.5, asset.duration / 2);
+            seekForThumb();
           };
-        } else {
-          asset.duration = v.duration;
-          v.currentTime = Math.min(0.5, asset.duration / 2);
+          return;
         }
+        asset.duration = v.duration;
+        // Playing (muted) is what makes iOS actually load frames; desktop browsers do not need it.
+        v.play().catch(() => {});
+        if (v.readyState >= 2) seekForThumb();
+        else v.onloadeddata = seekForThumb;
       };
       v.onseeked = () => {
         if (!isFinite(v.duration) || !asset.duration) return;
@@ -212,6 +221,15 @@ class MediaManager {
       v.addEventListener('loadeddata', redraw);
       v.src = url;
       this.videoEls.set(clip.id, v);
+      // iOS web views do not decode a frame until the element has been played once.
+      v.muted = true;
+      const el = v;
+      el.play().then(
+        () => {
+          if (!this.playing) el.pause();
+        },
+        () => {},
+      );
     }
     return v;
   }

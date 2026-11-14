@@ -94,7 +94,7 @@ async function userId(c: SupabaseClient): Promise<string> {
  * When set, the apps sign in through its /auth.html bridge page, which shows a branded
  * "Returning to CutVid" screen and hands the result back to the app.
  */
-const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) || 'https://cutvid.vercel.app').replace(/\/+$/, '');
+export const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) || 'https://cutvid.vercel.app').replace(/\/+$/, '');
 
 /** Where Supabase should send the user back to. Each of these must be allowed under Auth → URL Configuration. */
 export function redirectUrl(): string {
@@ -243,5 +243,15 @@ export async function cloudLoad(id: string, onProgress: (msg: string) => void): 
 
 export async function cloudDelete(id: string) {
   const { error } = await need().from('projects').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+// ---- feedback -----------------------------------------------------------------------------
+
+/** Anyone may send feedback (signed in or not); only the project owner can read it. */
+export async function sendFeedback(message: string, rating: number | null, email: string, platform: string) {
+  const { error } = await need()
+    .from('feedback')
+    .insert({ message: message.trim().slice(0, 4000), rating, email: email.trim().slice(0, 200) || null, platform });
   if (error) throw new Error(error.message);
 }

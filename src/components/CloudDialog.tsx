@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import { useStore } from '../store';
 import { useT } from '../lib/i18n';
 import { clearConfig, clearRecovery, cloudDelete, cloudList, cloudLoad, cloudSave, getConfig, recoveryPending, sendPasswordReset, sendSignInCode, setConfig, signInWithGoogle, signUpWithEmail, startEmailSignIn, supabase, verifySignInCode, type CloudProject } from '../lib/supabase';
+import { openProject } from './Home';
 import { Dialog } from './ui';
 
 export function CloudDialog({ onClose }: { onClose: () => void }) {
@@ -135,7 +136,7 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
     run(async () => {
       setStatus(t('loading'));
       const p = await cloudLoad(id, setStatus);
-      useStore.getState().loadProject(p);
+      await openProject(p);
       onClose();
     });
 

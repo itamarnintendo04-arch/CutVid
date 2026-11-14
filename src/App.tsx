@@ -1,27 +1,55 @@
 import { useEffect, useState } from 'react';
-import { Cloud, Download, FolderOpen, Languages, Layers, Redo2, SlidersHorizontal, Undo2 } from 'lucide-react';
-import { useStore } from './store';
-import { dbGet } from './lib/db';
+import { Cloud, Download, Home as HomeIcon, Languages, MessageSquareText, Redo2, Undo2 } from 'lucide-react';
+import { useStore, type PanelTab } from './store';
+import { dbSet } from './lib/db';
 import { useT } from './lib/i18n';
-import type { Project } from './types';
-import { Library, importFiles } from './components/Library';
+import { player } from './engine/player';
+import { EDIT_ICON, Library, TABS, importFiles } from './components/Library';
 import { Inspector } from './components/Inspector';
 import { Preview, togglePlay } from './components/Preview';
 import { Timeline } from './components/Timeline';
 import { ExportDialog } from './components/ExportDialog';
 import { CloudDialog } from './components/CloudDialog';
-import { ProjectsDialog, openProject } from './components/ProjectsDialog';
+import { FeedbackDialog } from './components/FeedbackDialog';
+import { Home } from './components/Home';
 
-type Sheet = 'library' | 'inspector' | null;
+type Sheet = PanelTab | 'inspector' | null;
+type DialogName = 'export' | 'cloud' | 'feedback' | null;
+
+/** Save a small poster frame so the home screen can show the project. */
+async function leaveEditor() {
+  const st = useStore.getState();
+  st.setPlaying(false);
+  let thumb: string | undefined;
+  try {
+    const src = player.canvas;
+    if (src && src.width) {
+      const c = document.createElement('canvas');
+      const k = 360 / Math.max(src.width, src.height);
+      c.width = Math.round(src.width * k);
+      c.height = Math.round(src.height * k);
+      c.getContext('2d')!.drawImage(src, 0, 0, c.width, c.height);
+      thumb = c.toDataURL('image/jpeg', 0.7);
+    }
+  } catch {
+    /* a poster is optional */
+  }
+  if (thumb) st.mutate((p) => void (p.thumb = thumb), false);
+  const p = useStore.getState().project;
+  await dbSet('projects', p.id, p).catch(() => {});
+  st.setScreen('home');
+}
 
 export function App() {
   const t = useT();
   const lang = useStore((s) => s.lang);
+  const screen = useStore((s) => s.screen);
   const name = useStore((s) => s.project.name);
   const canUndo = useStore((s) => s.past.length > 0);
   const canRedo = useStore((s) => s.future.length > 0);
   const busy = useStore((s) => s.busy);
-  const [dialog, setDialog] = useState<'export' | 'cloud' | 'projects' | null>(null);
+  const panelTab = useStore((s) => s.panelTab);
+  const [dialog, setDialog] = useState<DialogName>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [dropping, setDropping] = useState(false);
 
@@ -30,24 +58,20 @@ export function App() {
     document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
   }, [lang]);
 
-  // Restore the last project (and its media) from IndexedDB.
-  useEffect(() => {
-    const last = localStorage.getItem('cutvid:last');
-    if (last)
-      dbGet<Project>('projects', last)
-        .then((p) => p && openProject(p))
-        .catch(() => {});
-  }, []);
-
-  // A password-reset link was opened: show the dialog that asks for the new password.
+  // A password-reset link was opened, or a panel needs the user to sign in.
   useEffect(() => {
     const open = () => setDialog('cloud');
     window.addEventListener('cutvid:recovery', open);
-    return () => window.removeEventListener('cutvid:recovery', open);
+    window.addEventListener('cutvid:open-cloud', open);
+    return () => {
+      window.removeEventListener('cutvid:recovery', open);
+      window.removeEventListener('cutvid:open-cloud', open);
+    };
   }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (useStore.getState().screen !== 'editor') return;
       const el = e.target as HTMLElement;
       if (el.closest('input:not([type=range]), textarea, select, [contenteditable]')) return;
       const st = useStore.getState();
@@ -86,9 +110,32 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const dialogs = (
+    <>
+      {busy && <div className="toast">{busy === 'importing' ? t('importing') : busy === 'importFailed' ? t('importFailed') : busy}</div>}
+      {dialog === 'export' && <ExportDialog onClose={() => setDialog(null)} />}
+      {dialog === 'cloud' && <CloudDialog onClose={() => setDialog(null)} />}
+      {dialog === 'feedback' && <FeedbackDialog onClose={() => setDialog(null)} />}
+    </>
+  );
+
+  if (screen === 'home')
+    return (
+      <>
+        <Home onCloud={() => setDialog('cloud')} onFeedback={() => setDialog('feedback')} />
+        {dialogs}
+      </>
+    );
+
+  const openSheet = (id: Sheet) => {
+    if (id && id !== 'inspector') useStore.getState().setPanelTab(id);
+    setSheet(sheet === id ? null : id);
+  };
+  const sheetClass = sheet === 'inspector' ? ' sheet-inspector' : sheet ? ' sheet-library' : '';
+
   return (
     <div
-      className={'app' + (sheet ? ' sheet-' + sheet : '')}
+      className={'app' + sheetClass}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('Files')) {
           e.preventDefault();
@@ -103,10 +150,9 @@ export function App() {
       }}
     >
       <header className="topbar">
-        <div className="brand">
-          <img src="./icon.svg" alt="" width={26} height={26} />
-          <b>CutVid</b>
-        </div>
+        <button className="icon-btn" onClick={leaveEditor} title={t('projects')} aria-label={t('projects')}>
+          <HomeIcon size={19} />
+        </button>
         <input
           className="project-name"
           value={name}
@@ -123,8 +169,8 @@ export function App() {
         <button className="icon-btn" onClick={() => useStore.getState().setLang(lang === 'he' ? 'en' : 'he')} title="עברית / English" aria-label="language">
           <Languages size={18} />
         </button>
-        <button className="top-btn" onClick={() => setDialog('projects')}>
-          <FolderOpen size={16} /> <span>{t('projects')}</span>
+        <button className="icon-btn" onClick={() => setDialog('feedback')} title={t('feedback')} aria-label={t('feedback')}>
+          <MessageSquareText size={18} />
         </button>
         <button className="top-btn" onClick={() => setDialog('cloud')}>
           <Cloud size={16} /> <span>{t('cloud')}</span>
@@ -148,21 +194,20 @@ export function App() {
       </footer>
 
       <nav className="mobile-nav">
-        <button className={sheet === 'library' ? 'active' : ''} onClick={() => setSheet(sheet === 'library' ? null : 'library')}>
-          <Layers size={18} />
-          {t('library')}
-        </button>
-        <button className={sheet === 'inspector' ? 'active' : ''} onClick={() => setSheet(sheet === 'inspector' ? null : 'inspector')}>
-          <SlidersHorizontal size={18} />
-          {t('inspector')}
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button key={id} className={sheet && sheet !== 'inspector' && panelTab === id ? 'active' : ''} onClick={() => openSheet(id)}>
+            <Icon size={19} />
+            {t(label)}
+          </button>
+        ))}
+        <button className={sheet === 'inspector' ? 'active' : ''} onClick={() => openSheet('inspector')}>
+          <EDIT_ICON size={19} />
+          {t('edit')}
         </button>
       </nav>
 
       {dropping && <div className="drop-overlay">{t('import')}</div>}
-      {busy && <div className="toast">{busy === 'importing' ? t('importing') : busy}</div>}
-      {dialog === 'export' && <ExportDialog onClose={() => setDialog(null)} />}
-      {dialog === 'cloud' && <CloudDialog onClose={() => setDialog(null)} />}
-      {dialog === 'projects' && <ProjectsDialog onClose={() => setDialog(null)} />}
+      {dialogs}
     </div>
   );
 }

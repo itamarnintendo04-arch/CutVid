@@ -1,7 +1,8 @@
 import type { Draft } from 'immer';
 import { addTrackTo, baseClip, freeTrack, useStore } from '../store';
-import type { AnimProp, AnimationType, BlendMode, Clip, Easing, Keyframe, Project } from '../types';
-import { ANIM_PROPS, DEFAULT_TEXT, clipEnd, projectDuration } from '../types';
+import type { AnimProp, BlendMode, Clip, Easing, EffectType, Keyframe, Project, ShapeKind } from '../types';
+import { ANIMATION_TYPES, ANIM_PROPS, DEFAULT_TEXT, EFFECT_TYPES, clipEnd, projectDuration } from '../types';
+import { EASINGS } from '../engine/keyframes';
 
 export const SYSTEM_PROMPT = `You are CutVid AI, the assistant inside the CutVid video editor. You build and edit the user's timeline by returning a list of operations. You can create motion graphics and whole videos out of text, shapes and the media files already imported into the project. You cannot generate new footage, images or audio; when a request needs media that is not in the project, build the best version you can from text and shapes and say what is missing.
 
@@ -18,8 +19,8 @@ Coordinate system
 
 Operations
 - {"op":"addText","id":"t1","content":"...","start":0,"duration":3, ...text fields, ...common fields}
-  text fields: size, color, bold, italic, font ("sans"|"serif"|"mono"|"impact"), align ("left"|"center"|"right"), stroke, strokeWidth, background (colour or ""), shadow, typewriter (bool)
-- {"op":"addShape","id":"s1","kind":"rect"|"ellipse","fill":"#rrggbb","width":1,"height":1,"radius":0,"start":0,"duration":3, ...common fields}
+  text fields: size, color, bold, italic, font ("sans"|"rounded"|"display"|"condensed"|"serif"|"script"|"marker"|"mono"|"impact"), align ("left"|"center"|"right"), stroke, strokeWidth, background (colour or ""), shadow, glow (0-80) with glowColor, typewriter (bool)
+- {"op":"addShape","id":"s1","kind":"rect"|"ellipse"|"triangle"|"star"|"heart"|"arrow"|"diamond"|"hexagon"|"line"|"bubble"|"ring"|"frame"|"letterbox"|"vignette"|"scanlines"|"grain","fill":"#rrggbb","fill2":"#rrggbb" (optional, makes a gradient), "gradientAngle":90,"width":1,"height":1,"radius":0,"start":0,"duration":3, ...common fields}
 - {"op":"addMedia","id":"m1","asset":"a1","start":0,"duration":4,"offset":0,"speed":1,"volume":1, ...common fields}  ("asset" is an alias from the project summary; "offset" is the in-point inside the file; omit "duration" to use the rest of the file)
 - {"op":"updateClip","clip":"c1", ...any field listed here}  (only the fields you include change)
 - {"op":"deleteClip","clip":"c1"}
@@ -28,8 +29,9 @@ Operations
 
 Common fields (all optional)
 - x, y, scale, rotation, opacity, blend ("normal"|"screen"|"multiply"|"overlay"|"lighten"|"darken"|"difference")
-- animIn / animOut: "none"|"fade"|"slideLeft"|"slideRight"|"slideUp"|"slideDown"|"zoomIn"|"zoomOut"|"spin"|"wipe"|"blur", with animInDuration / animOutDuration in seconds
-- keyframes: {"x":[{"t":0,"v":-0.6,"ease":"easeOut"},{"t":1,"v":0}], "scale":[...]} for x, y, scale, rotation, opacity. "t" is seconds from the START OF THE CLIP. ease: "linear"|"easeIn"|"easeOut"|"easeInOut"|"hold". Set a property to null to remove its keyframes.
+- animIn / animOut: "none"|"fade"|"slideLeft"|"slideRight"|"slideUp"|"slideDown"|"zoomIn"|"zoomOut"|"spin"|"wipe"|"wipeRight"|"wipeUp"|"wipeDown"|"iris"|"flipX"|"flipY"|"bounce"|"drop"|"swing"|"blur", with animInDuration / animOutDuration in seconds
+- effects: {"shake":0.5,"glitch":0.4} — continuous effects with strength 0..1 (0 removes): shake, pulse, wobble, float, zoomPunch, strobe, flash, rgbSplit, glitch, pixelate, mirror, grain, scanlines, hueCycle
+- keyframes: {"x":[{"t":0,"v":-0.6,"ease":"easeOut"},{"t":1,"v":0}], "scale":[...]} for x, y, scale, rotation, opacity. "t" is seconds from the START OF THE CLIP. ease: "linear"|"easeIn"|"easeOut"|"easeInOut"|"backOut"|"backIn"|"elasticOut"|"bounceOut"|"expoOut"|"expoIn"|"sineInOut"|"hold", or a cubic-bezier array [x1,y1,x2,y2]. Set a property to null to remove its keyframes.
 - filters: {"brightness":1,"contrast":1,"saturation":1,"hue":0,"blur":0,"grayscale":0,"sepia":0,"invert":0,"vignette":0}
 - fadeIn / fadeOut (audio fades, seconds), chroma: {"enabled":true,"color":"#00ff00","similarity":0.35,"smoothness":0.1}
 
@@ -42,14 +44,24 @@ Craft
 - Match the frame: for a vertical frame stack elements and use larger text.
 - When the user asks to change something that exists, use updateClip instead of adding a duplicate.`;
 
-const ANIMS: AnimationType[] = ['none', 'fade', 'slideLeft', 'slideRight', 'slideUp', 'slideDown', 'zoomIn', 'zoomOut', 'spin', 'wipe', 'blur'];
-const EASES: Easing[] = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'hold'];
+const ANIMS = ANIMATION_TYPES;
+const KINDS: ShapeKind[] = ['rect', 'ellipse', 'triangle', 'star', 'heart', 'arrow', 'diamond', 'hexagon', 'line', 'bubble', 'ring', 'frame', 'letterbox', 'vignette', 'scanlines', 'grain'];
+const ease = (e: unknown): Easing => {
+  if (typeof e === 'string' && EASINGS[e]) return e;
+  if (Array.isArray(e) && e.length === 4 && e.every((n) => typeof n === 'number' && isFinite(n))) return [Math.max(0, Math.min(1, e[0])), e[1], Math.max(0, Math.min(1, e[2])), e[3]];
+  return 'easeInOut';
+};
 const BLENDS: Record<string, BlendMode> = { normal: 'source-over', screen: 'screen', multiply: 'multiply', overlay: 'overlay', lighten: 'lighten', darken: 'darken', difference: 'difference' };
 const FONTS: Record<string, string> = {
   sans: DEFAULT_TEXT.font,
-  serif: 'Georgia, serif',
-  mono: '"Courier New", monospace',
-  impact: 'Impact, "Arial Black", sans-serif',
+  rounded: 'Rubik, Arial, sans-serif',
+  display: '"Bebas Neue", Impact, sans-serif',
+  condensed: 'Anton, Impact, sans-serif',
+  serif: '"Playfair Display", Georgia, serif',
+  script: 'Pacifico, cursive',
+  marker: '"Permanent Marker", cursive',
+  mono: '"Roboto Mono", "Courier New", monospace',
+  impact: '"Bebas Neue", Impact, sans-serif',
 };
 
 /** Compact description of the project the model can reason over; aliases keep ids short. */
@@ -133,9 +145,17 @@ function applyFields(c: Draft<Clip>, o: any) {
       for (const k of list) {
         const t = num(k?.t, 0, 36000);
         const v = num(k?.v, -3600, 3600);
-        if (t !== undefined && v !== undefined) kfs.push({ t, v, ease: EASES.includes(k.ease) ? k.ease : 'easeInOut' });
+        if (t !== undefined && v !== undefined) kfs.push({ t, v, ease: ease(k.ease) });
       }
       if (kfs.length) c.keyframes[prop] = kfs.sort((a, b) => a.t - b.t);
+    }
+  }
+  if (o.effects && typeof o.effects === 'object' && !Array.isArray(o.effects)) {
+    for (const type of EFFECT_TYPES as EffectType[]) {
+      const amount = num(o.effects[type], 0, 1);
+      if (amount === undefined) continue;
+      c.effects = c.effects.filter((e) => e.type !== type);
+      if (amount > 0) c.effects.push({ type, amount });
     }
   }
   if (o.filters && typeof o.filters === 'object') {
@@ -160,6 +180,8 @@ function applyFields(c: Draft<Clip>, o: any) {
     t.stroke = color(o.stroke) ?? t.stroke;
     t.strokeWidth = num(o.strokeWidth, 0, 80) ?? t.strokeWidth;
     t.shadow = num(o.shadow, 0, 120) ?? t.shadow;
+    t.glow = num(o.glow, 0, 80) ?? t.glow;
+    t.glowColor = hex6(o.glowColor) ?? t.glowColor;
     if (typeof o.background === 'string') t.background = o.background === '' ? '' : (color(o.background) ?? t.background);
     if (typeof o.bold === 'boolean') t.bold = o.bold;
     if (typeof o.italic === 'boolean') t.italic = o.italic;
@@ -173,7 +195,10 @@ function applyFields(c: Draft<Clip>, o: any) {
     s.width = num(o.width, 0.001, 5) ?? s.width;
     s.height = num(o.height, 0.001, 5) ?? s.height;
     s.radius = num(o.radius, 0, 0.5) ?? s.radius;
-    if (o.kind === 'rect' || o.kind === 'ellipse') s.kind = o.kind;
+    if (KINDS.includes(o.kind)) s.kind = o.kind;
+    if (o.fill2 === null || o.fill2 === '') s.fill2 = undefined;
+    else s.fill2 = color(o.fill2) ?? s.fill2;
+    s.gradientAngle = num(o.gradientAngle, 0, 360) ?? s.gradientAngle;
   }
 }
 
@@ -202,7 +227,7 @@ export function applyOps(ops: any[]): number {
         }
         case 'addShape': {
           const duration = num(o.duration, 0.1, 3600) ?? 3;
-          clip = baseClip({ type: 'shape', name: o.kind === 'ellipse' ? 'ellipse' : 'rect', trackId: trackAbove(p, start, start + duration), start, duration, shape: { kind: 'rect', fill: '#7c5cff', width: 0.3, height: 0.3, radius: 0 } });
+          clip = baseClip({ type: 'shape', name: KINDS.includes(o.kind) ? o.kind : 'rect', trackId: trackAbove(p, start, start + duration), start, duration, shape: { kind: 'rect', fill: '#7c5cff', width: 0.3, height: 0.3, radius: 0 } });
           break;
         }
         case 'addMedia': {

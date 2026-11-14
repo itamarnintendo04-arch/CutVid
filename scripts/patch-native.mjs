@@ -21,6 +21,18 @@ if (existsSync(manifest)) {
     writeFileSync(manifest, xml);
     console.log('android: URL scheme registered');
   }
+  // Notifications (Android 13+) and saving exports to the gallery.
+  const perms = [
+    '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+    '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />',
+    '<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />',
+    '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />',
+  ].filter((p) => !xml.includes(p.match(/android\.permission\.[A-Z_]+/)[0]));
+  if (perms.length) {
+    xml = xml.replace('</manifest>', `    ${perms.join('\n    ')}\n</manifest>`);
+    writeFileSync(manifest, xml);
+    console.log(`android: ${perms.length} permission(s) added`);
+  }
 }
 
 const plist = 'ios/App/App/Info.plist';
@@ -44,5 +56,21 @@ if (existsSync(plist)) {
     xml = xml.slice(0, end) + entry + xml.slice(end);
     writeFileSync(plist, xml);
     console.log('ios: URL scheme registered');
+  }
+  // iOS refuses to save to Photos without these explanations.
+  const usage = {
+    NSPhotoLibraryAddUsageDescription: 'CutVid saves your exported videos to your photo library.',
+    NSPhotoLibraryUsageDescription: 'CutVid saves your exported videos to your photo library.',
+  };
+  let added = 0;
+  for (const [key, text] of Object.entries(usage)) {
+    if (xml.includes(`<key>${key}</key>`)) continue;
+    const end = xml.lastIndexOf('</dict>');
+    xml = xml.slice(0, end) + `\t<key>${key}</key>\n\t<string>${text}</string>\n` + xml.slice(end);
+    added++;
+  }
+  if (added) {
+    writeFileSync(plist, xml);
+    console.log(`ios: ${added} usage description(s) added`);
   }
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { produce, type Draft } from 'immer';
-import type { AnimProp, Clip, MediaAsset, Project, Track, TrackKind } from './types';
+import type { AnimProp, Clip, Easing, EffectType, MediaAsset, Project, ShapeStyle, Track, TrackKind } from './types';
 import { DEFAULT_CHROMA, DEFAULT_FILTERS, DEFAULT_TEXT, DEFAULT_TRANSFORM, clipEnd, projectDuration, uid } from './types';
 import { KF_EPS, findKeyframe, propAt } from './engine/keyframes';
 import { dbSet } from './lib/db';
@@ -39,9 +39,24 @@ export function baseClip(partial: Partial<Clip> & Pick<Clip, 'type' | 'trackId' 
     animIn: { type: 'none', duration: 0.5 },
     animOut: { type: 'none', duration: 0.5 },
     keyframes: {},
+    effects: [],
     ...partial,
   };
 }
+
+/** Fill in fields added after a project was saved, so old projects keep opening. */
+export function normalizeProject(p: Project): Project {
+  return {
+    ...p,
+    clips: p.clips.map((c) => ({
+      ...c,
+      effects: c.effects ?? [],
+      text: c.text ? { ...DEFAULT_TEXT, ...c.text } : undefined,
+    })),
+  };
+}
+
+export type PanelTab = 'media' | 'text' | 'elements' | 'overlays' | 'effects' | 'transitions' | 'filters' | 'keyframes' | 'ai';
 
 const overlaps = (clips: Clip[], trackId: string, start: number, end: number, ignore?: string) =>
   clips.some((c) => c.trackId === trackId && c.id !== ignore && c.start < end - 1e-6 && clipEnd(c) > start + 1e-6);
@@ -81,6 +96,8 @@ interface State {
   zoom: number; // timeline pixels per second
   lang: Lang;
   busy: string | null;
+  screen: 'home' | 'editor';
+  panelTab: PanelTab;
 
   mutate: (fn: (p: Draft<Project>) => void, record?: boolean) => void;
   snapshot: () => void;
@@ -93,12 +110,16 @@ interface State {
   setLang: (l: Lang) => void;
   setBusy: (b: string | null) => void;
   loadProject: (p: Project) => void;
+  setScreen: (s: 'home' | 'editor') => void;
+  setPanelTab: (t: PanelTab) => void;
 
   addAsset: (a: MediaAsset) => void;
   removeAsset: (id: string) => void;
   addClipFromAsset: (assetId: string) => void;
   addText: (content: string) => void;
-  addShape: (kind: 'rect' | 'ellipse') => void;
+  addShape: (shape: Partial<ShapeStyle> & Pick<ShapeStyle, 'kind'>, extra?: Partial<Clip>) => void;
+  setEffect: (id: string, type: EffectType, amount: number, record?: boolean) => void;
+  setEasing: (id: string, ease: Easing, onlyCurrent: boolean) => void;
   addTrack: (kind: TrackKind) => void;
   removeTrack: (id: string) => void;
   splitAtPlayhead: () => void;
@@ -123,6 +144,8 @@ export const useStore = create<State>((set, get) => ({
   // English by default; the language button in the top bar switches to Hebrew.
   lang: localStorage.getItem('cutvid:lang') === 'he' ? 'he' : 'en',
   busy: null,
+  screen: 'home',
+  panelTab: 'media',
 
   mutate: (fn, record = true) =>
     set((s) => {
@@ -155,7 +178,9 @@ export const useStore = create<State>((set, get) => ({
     set({ lang });
   },
   setBusy: (busy) => set({ busy }),
-  loadProject: (project) => set({ project, past: [], future: [], time: 0, playing: false, selection: [] }),
+  loadProject: (project) => set({ project: normalizeProject(project), past: [], future: [], time: 0, playing: false, selection: [] }),
+  setScreen: (screen) => set({ screen, playing: false }),
+  setPanelTab: (panelTab) => set({ panelTab }),
 
   addAsset: (a) => get().mutate((p) => void p.assets.push(a)),
   removeAsset: (id) =>
@@ -191,22 +216,55 @@ export const useStore = create<State>((set, get) => ({
     set({ selection: [id] });
   },
 
-  addShape: (kind) => {
+  addShape: (shape, extra) => {
     const { time } = get();
     let id = '';
     get().mutate((p) => {
+      const full = shape.width === undefined;
+      // Keep round-ish shapes square on any frame.
+      const square = ['ellipse', 'star', 'heart', 'diamond', 'hexagon', 'ring', 'triangle'].includes(shape.kind);
       const clip = baseClip({
         type: 'shape',
-        name: kind,
+        name: shape.kind,
         trackId: freeTrack(p, 'video', time, time + 3, true),
         start: time,
         duration: 3,
-        shape: { kind, fill: '#7c5cff', width: 0.3, height: kind === 'ellipse' ? (0.3 * p.width) / p.height : 0.3, radius: 0.08 },
+        ...extra,
+        shape: { fill: '#7c5cff', width: 0.3, height: full && square ? (0.3 * p.width) / p.height : 0.3, radius: 0.08, ...shape },
       });
       id = clip.id;
       p.clips.push(clip);
     });
     set({ selection: [id] });
+  },
+
+  setEffect: (id, type, amount, record = true) =>
+    get().updateClip(
+      id,
+      (c) => {
+        const list = (c.effects ??= []);
+        const i = list.findIndex((e) => e.type === type);
+        if (amount <= 0) {
+          if (i >= 0) list.splice(i, 1);
+        } else if (i >= 0) list[i].amount = amount;
+        else list.push({ type, amount });
+      },
+      record,
+    ),
+
+  // Apply a curve to every keyframe of the clip, or only to the segment under the playhead.
+  setEasing: (id, ease, onlyCurrent) => {
+    const { time } = get();
+    get().updateClip(id, (c) => {
+      const lt = time - c.start;
+      for (const kfs of Object.values(c.keyframes)) {
+        if (!kfs) continue;
+        kfs.forEach((k, i) => {
+          const next = kfs[i + 1];
+          if (!onlyCurrent || (lt >= k.t - KF_EPS && (!next || lt < next.t))) k.ease = ease;
+        });
+      }
+    });
   },
 
   addTrack: (kind) => get().mutate((p) => void addTrackTo(p, kind)),

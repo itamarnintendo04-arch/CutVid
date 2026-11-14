@@ -12,7 +12,7 @@ import type { Clip, Project } from '../types';
 import { projectDuration } from '../types';
 import { media } from './media';
 import { player } from './player';
-import { drawFrame } from './render';
+import { drawFrame, fontsReady } from './render';
 
 export interface ExportOptions {
   width: number;
@@ -53,9 +53,14 @@ function loadVideo(url: string): Promise<HTMLVideoElement> {
     v.muted = true;
     v.playsInline = true;
     v.preload = 'auto';
-    v.onloadeddata = () => resolve(v);
+    v.onloadeddata = () => {
+      v.pause();
+      resolve(v);
+    };
     v.onerror = () => reject(new Error('Could not load a video for export'));
     v.src = url;
+    // Needed on iOS, harmless elsewhere: frames only load once the element has played.
+    v.play().catch(() => {});
   });
 }
 
@@ -121,6 +126,7 @@ export async function exportProject(
   const chosen = await pick();
   if (!chosen) throw new Error('No supported video encoder found on this device');
 
+  await fontsReady(project);
   player.suspended = true;
   media.pauseAll();
   const videos = new Map<string, HTMLVideoElement>();

@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import { useStore, totalDuration } from '../store';
 import { exportProject, exportSupported, type ExportResult } from '../engine/export';
-import { saveBlob } from '../lib/save';
+import { saveBlob, savesToGallery, type SaveResult } from '../lib/save';
+import { notify } from '../lib/notify';
 import { useT } from '../lib/i18n';
 import { Dialog } from './ui';
 
@@ -12,7 +13,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const t = useT();
   const project = useStore((s) => s.project);
   const duration = useStore(totalDuration);
-  const [short, setShort] = useState(0); // 0 = project size, otherwise length of the short side
+  const [short, setShort] = useState(1080); // length of the frame's short side
+  const [saved, setSaved] = useState<SaveResult | null>(null);
   const [fps, setFps] = useState(project.fps);
   const [quality, setQuality] = useState<keyof typeof BPP>('medium');
   const [progress, setProgress] = useState<number | null>(null);
@@ -35,6 +37,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     abort.current = new AbortController();
     try {
       setResult(await exportProject(project, { width, height, fps, bitrate }, setProgress, abort.current.signal));
+      notify('CutVid', t('exportDone'));
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setError((e as Error).message);
       setProgress(null);
@@ -60,9 +63,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             {t('exportDone')} · {(result.blob.size / 1e6).toFixed(1)} MB · {result.ext.toUpperCase()}
           </p>
           {!result.hasAudio && project.clips.some((c) => c.type === 'audio' || c.type === 'video') && <p className="muted">{t('noAudioEncoder')}</p>}
-          <button className="primary" onClick={() => saveBlob(result.blob, filename).catch((e) => setError(e.message))}>
-            <Download size={16} /> {t('save')}
+          <button className="primary" onClick={() => saveBlob(result.blob, filename).then(setSaved, (e) => setError(e.message))}>
+            <Download size={16} /> {savesToGallery() ? t('saveToGallery') : t('save')}
           </button>
+          {saved === 'gallery' && <p className="ok">{t('savedToGallery')} ✓</p>}
         </div>
       ) : running ? (
         <div className="stack">
@@ -79,9 +83,6 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           <label className="field">
             <span className="field-label">{t('resolution')}</span>
             <select value={short} onChange={(e) => setShort(+e.target.value)}>
-              <option value={0}>
-                {t('project')} · {project.width}×{project.height}
-              </option>
               <option value={480}>480p</option>
               <option value={720}>720p</option>
               <option value={1080}>1080p</option>

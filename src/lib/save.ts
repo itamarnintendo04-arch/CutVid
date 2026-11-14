@@ -9,13 +9,15 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+export type SaveResult = 'gallery' | 'shared' | 'downloaded';
+
+export const savesToGallery = () => Capacitor.isNativePlatform();
+
 /** Hand a finished file to the user in the way each platform expects. */
-export async function saveBlob(blob: Blob, filename: string): Promise<void> {
+export async function saveBlob(blob: Blob, filename: string): Promise<SaveResult> {
   if (Capacitor.isNativePlatform()) {
-    // iOS/Android web views cannot "download": write to the cache dir and open the share sheet
-    // (Save to Photos / Files / other apps).
+    // Web views cannot "download": write the file to the cache dir first.
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
-    const { Share } = await import('@capacitor/share');
     const CHUNK = 3 * 1024 * 1024; // multiple of 3 so base64 chunks concatenate cleanly
     for (let pos = 0, first = true; pos < blob.size || first; pos += CHUNK, first = false) {
       const data = await blobToBase64(blob.slice(pos, pos + CHUNK));
@@ -23,8 +25,28 @@ export async function saveBlob(blob: Blob, filename: string): Promise<void> {
       else await Filesystem.appendFile({ path: filename, data, directory: Directory.Cache });
     }
     const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+
+    // Preferred: straight into the Photos / Gallery app.
+    try {
+      const { Media } = await import('@capacitor-community/media');
+      let albumIdentifier: string | undefined;
+      if (Capacitor.getPlatform() === 'android') {
+        // Android requires an album to save into.
+        const find = async () => (await Media.getAlbums()).albums.find((a) => a.name === 'CutVid')?.identifier;
+        albumIdentifier = await find();
+        if (!albumIdentifier) {
+          await Media.createAlbum({ name: 'CutVid' });
+          albumIdentifier = await find();
+        }
+      }
+      await Media.saveVideo({ path: uri, albumIdentifier });
+      return 'gallery';
+    } catch (e) {
+      console.warn('gallery save failed, falling back to the share sheet', e);
+    }
+    const { Share } = await import('@capacitor/share');
     await Share.share({ title: filename, url: uri });
-    return;
+    return 'shared';
   }
 
   const touch = matchMedia('(pointer: coarse)').matches;
@@ -32,9 +54,9 @@ export async function saveBlob(blob: Blob, filename: string): Promise<void> {
   if (touch && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: filename });
-      return;
+      return 'shared';
     } catch (e) {
-      if ((e as Error).name === 'AbortError') return;
+      if ((e as Error).name === 'AbortError') return 'shared';
     }
   }
   const url = URL.createObjectURL(blob);
@@ -45,4 +67,5 @@ export async function saveBlob(blob: Blob, filename: string): Promise<void> {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return 'downloaded';
 }

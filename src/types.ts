@@ -25,7 +25,8 @@ export interface Track {
 
 export type ClipType = 'video' | 'image' | 'audio' | 'text' | 'shape';
 
-export type Easing = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'hold';
+/** A named curve from EASINGS, or a custom cubic-bezier [x1, y1, x2, y2]. */
+export type Easing = string | [number, number, number, number];
 
 export interface Keyframe {
   t: number; // seconds, relative to clip start
@@ -76,7 +77,26 @@ export type AnimationType =
   | 'zoomOut'
   | 'spin'
   | 'wipe'
+  | 'wipeRight'
+  | 'wipeUp'
+  | 'wipeDown'
+  | 'iris'
+  | 'flipX'
+  | 'flipY'
+  | 'bounce'
+  | 'drop'
+  | 'swing'
   | 'blur';
+
+export const ANIMATION_TYPES: AnimationType[] = ['none', 'fade', 'slideLeft', 'slideRight', 'slideUp', 'slideDown', 'zoomIn', 'zoomOut', 'spin', 'wipe', 'wipeRight', 'wipeUp', 'wipeDown', 'iris', 'flipX', 'flipY', 'bounce', 'drop', 'swing', 'blur'];
+
+export type EffectType = 'shake' | 'pulse' | 'wobble' | 'float' | 'strobe' | 'flash' | 'rgbSplit' | 'glitch' | 'pixelate' | 'mirror' | 'grain' | 'scanlines' | 'hueCycle' | 'zoomPunch';
+export const EFFECT_TYPES: EffectType[] = ['shake', 'pulse', 'wobble', 'float', 'zoomPunch', 'strobe', 'flash', 'rgbSplit', 'glitch', 'pixelate', 'mirror', 'grain', 'scanlines', 'hueCycle'];
+
+export interface ClipEffect {
+  type: EffectType;
+  amount: number; // 0..1
+}
 
 export interface ClipAnimation {
   type: AnimationType;
@@ -95,13 +115,21 @@ export interface TextStyle {
   strokeWidth: number;
   background: string; // '' = none
   shadow: number; // blur radius, 0 = none
+  glow: number; // glow radius, 0 = none
+  glowColor: string;
   lineHeight: number;
   typewriter: boolean;
 }
 
+export type ShapeKind = 'rect' | 'ellipse' | 'triangle' | 'star' | 'heart' | 'arrow' | 'diamond' | 'hexagon' | 'line' | 'bubble' | 'ring' | 'frame' | 'letterbox' | 'vignette' | 'scanlines' | 'grain';
+export const SHAPE_KINDS: ShapeKind[] = ['rect', 'ellipse', 'triangle', 'star', 'heart', 'arrow', 'diamond', 'hexagon', 'line', 'bubble', 'ring', 'frame'];
+
 export interface ShapeStyle {
-  kind: 'rect' | 'ellipse';
+  kind: ShapeKind;
   fill: string;
+  /** Second colour: when set the fill is a linear gradient from fill to fill2. */
+  fill2?: string;
+  gradientAngle?: number;
   width: number; // fraction of canvas width
   height: number; // fraction of canvas height
   radius: number; // fraction of the shorter side, rect only
@@ -129,6 +157,7 @@ export interface Clip {
   animIn: ClipAnimation;
   animOut: ClipAnimation;
   keyframes: Partial<Record<AnimProp, Keyframe[]>>;
+  effects: ClipEffect[];
   text?: TextStyle;
   shape?: ShapeStyle;
 }
@@ -144,6 +173,7 @@ export interface Project {
   tracks: Track[]; // index 0 = top-most layer
   clips: Clip[];
   updatedAt: number;
+  thumb?: string;
 }
 
 export const DEFAULT_TRANSFORM: Transform = { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, flipH: false, flipV: false };
@@ -161,6 +191,8 @@ export const DEFAULT_TEXT: TextStyle = {
   strokeWidth: 0,
   background: '',
   shadow: 8,
+  glow: 0,
+  glowColor: '#19d3c5',
   lineHeight: 1.2,
   typewriter: false,
 };

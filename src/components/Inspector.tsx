@@ -6,6 +6,8 @@ import { DEFAULT_FILTERS, DEFAULT_TRANSFORM } from '../types';
 import { findKeyframe, propAt } from '../engine/keyframes';
 import { canvasFiltersSupported } from '../engine/render';
 import { Section, Slider, Toggle } from './ui';
+import { AspectPicker } from './AspectPicker';
+import { FONTS as FONT_LIST } from '../lib/fonts';
 
 const FORMATS = [
   { label: '16:9 · 1920×1080', w: 1920, h: 1080 },
@@ -55,25 +57,20 @@ function ProjectSettings() {
           <span className="field-label">{t('name')}</span>
           <input type="text" value={p.name} onChange={(e) => mutate((d) => void (d.name = e.target.value), false)} />
         </label>
-        <label className="field">
-          <span className="field-label">{t('format')}</span>
-          <select
-            value={`${p.width}x${p.height}`}
-            onChange={(e) => {
-              const [w, h] = e.target.value.split('x').map(Number);
+        <div className="field">
+          <span className="field-label">{t('aspectRatio')}</span>
+          <AspectPicker
+            width={p.width}
+            height={p.height}
+            onPick={(w, h) =>
               mutate((d) => {
                 d.width = w;
                 d.height = h;
-              });
-            }}
-          >
-            {FORMATS.map((f) => (
-              <option key={f.label} value={`${f.w}x${f.h}`}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </label>
+              })
+            }
+          />
+          <small className="muted">{t('resolutionAtExport')}</small>
+        </div>
         <label className="field">
           <span className="field-label">{t('fps')}</span>
           <select value={p.fps} onChange={(e) => mutate((d) => void (d.fps = +e.target.value))}>
@@ -172,9 +169,11 @@ export function Inspector() {
             <label className="field">
               <span className="field-label">{t('font')}</span>
               <select value={clip.text.font} onChange={(e) => up((c) => void (c.text!.font = e.target.value), true)}>
-                {FONTS.map(([n, v]) => (
-                  <option key={v} value={v}>
-                    {n}
+                {!FONT_LIST.some((f) => f.css === clip.text!.font) && <option value={clip.text.font}>{clip.text.font.split(',')[0].replace(/"/g, '')}</option>}
+                {FONT_LIST.map((f) => (
+                  <option key={f.css} value={f.css} style={{ fontFamily: f.css }}>
+                    {f.name}
+                    {f.hebrew ? ' · עב' : ''}
                   </option>
                 ))}
               </select>
@@ -218,6 +217,15 @@ export function Inspector() {
             </div>
             <Slider label={t('strokeWidth')} value={clip.text.strokeWidth} min={0} max={40} step={1} onChange={(v) => up((c) => void (c.text!.strokeWidth = v))} />
             <Slider label={t('shadow')} value={clip.text.shadow} min={0} max={60} step={1} onChange={(v) => up((c) => void (c.text!.shadow = v))} />
+            <Slider
+              label={t('glow')}
+              value={clip.text.glow}
+              min={0}
+              max={80}
+              step={1}
+              onChange={(v) => up((c) => void (c.text!.glow = v))}
+              extra={<input type="color" className="mini-color" value={clip.text.glowColor} onPointerDown={snapshot} onChange={(e) => up((c) => void (c.text!.glowColor = e.target.value))} aria-label={t('glowColor')} />}
+            />
             <Toggle label={t('typewriter')} checked={clip.text.typewriter} onChange={(v) => up((c) => void (c.text!.typewriter = v), true)} />
           </Section>
         )}
@@ -226,11 +234,18 @@ export function Inspector() {
           <Section title={t('shape')}>
             <label className="field inline">
               <span className="field-label">{t('fill')}</span>
-              <input type="color" value={clip.shape.fill} onPointerDown={snapshot} onChange={(e) => up((c) => void (c.shape!.fill = e.target.value))} />
+              <input type="color" value={/^#[0-9a-f]{6}$/i.test(clip.shape.fill) ? clip.shape.fill : '#000000'} onPointerDown={snapshot} onChange={(e) => up((c) => void (c.shape!.fill = e.target.value))} />
             </label>
+            <div className="row">
+              <Toggle label={t('gradient')} checked={!!clip.shape.fill2} onChange={(v) => up((c) => void (c.shape!.fill2 = v ? '#19d3c5' : undefined), true)} />
+              {clip.shape.fill2 && /^#[0-9a-f]{6}$/i.test(clip.shape.fill2) && (
+                <input type="color" value={clip.shape.fill2} onPointerDown={snapshot} onChange={(e) => up((c) => void (c.shape!.fill2 = e.target.value))} aria-label={t('gradient')} />
+              )}
+            </div>
+            {clip.shape.fill2 && <Slider label={t('angle')} value={clip.shape.gradientAngle ?? 90} min={0} max={360} step={1} unit="°" onChange={(v) => up((c) => void (c.shape!.gradientAngle = v))} />}
             <Slider label={t('width')} value={clip.shape.width} min={0.01} max={1.5} display={100} unit="%" onChange={(v) => up((c) => void (c.shape!.width = v))} />
             <Slider label={t('height')} value={clip.shape.height} min={0.01} max={1.5} display={100} unit="%" onChange={(v) => up((c) => void (c.shape!.height = v))} />
-            {clip.shape.kind === 'rect' && (
+            {['rect', 'ring', 'frame', 'letterbox'].includes(clip.shape.kind) && (
               <Slider label={t('radius')} value={clip.shape.radius} min={0} max={0.5} display={100} unit="%" onChange={(v) => up((c) => void (c.shape!.radius = v))} />
             )}
           </Section>
@@ -260,23 +275,6 @@ export function Inspector() {
             <AnimSlider clip={clip} prop="scale" label="scale" min={0.05} max={4} display={100} unit="%" />
             <AnimSlider clip={clip} prop="rotation" label="rotation" min={-360} max={360} step={1} unit="°" />
             <AnimSlider clip={clip} prop="opacity" label="opacity" min={0} max={1} display={100} unit="%" />
-            {hasKeyframes && (
-              <label className="field">
-                <span className="field-label">{t('easing')}</span>
-                <select
-                  value={Object.values(clip.keyframes).find((k) => k?.length)?.[0].ease ?? 'easeInOut'}
-                  onChange={(e) =>
-                    up((c) => {
-                      for (const kfs of Object.values(c.keyframes)) kfs?.forEach((k) => (k.ease = e.target.value as Easing));
-                    }, true)
-                  }
-                >
-                  {EASINGS.map((x) => (
-                    <option key={x}>{x}</option>
-                  ))}
-                </select>
-              </label>
-            )}
             <div className="row">
               <button className={'chip' + (clip.transform.flipH ? ' active' : '')} onClick={() => up((c) => void (c.transform.flipH = !c.transform.flipH), true)}>
                 <FlipHorizontal2 size={14} /> {t('flipH')}
@@ -298,26 +296,6 @@ export function Inspector() {
           </Section>
         )}
 
-        {visual && (
-          <Section title={t('animation')}>
-            {(['animIn', 'animOut'] as const).map((k) => (
-              <div key={k}>
-                <label className="field">
-                  <span className="field-label">{t(k)}</span>
-                  <select value={clip[k].type} onChange={(e) => up((c) => void (c[k].type = e.target.value as AnimationType), true)}>
-                    {ANIMS.map((a) => (
-                      <option key={a}>{a}</option>
-                    ))}
-                  </select>
-                </label>
-                {clip[k].type !== 'none' && (
-                  <Slider label={t('duration')} value={clip[k].duration} min={0.1} max={Math.max(0.2, Math.min(5, clip.duration))} step={0.05} unit="s" onChange={(v) => up((c) => void (c[k].duration = v))} />
-                )}
-              </div>
-            ))}
-          </Section>
-        )}
-
         {hasAudio && (
           <Section title={clip.type === 'video' ? `${t('speed')} · ${t('audio')}` : t('audio')}>
             <Slider label={t('speed')} value={clip.speed} min={0.1} max={8} step={0.05} unit="×" onChange={(v) => setSpeed(clip.id, v)} />
@@ -327,41 +305,6 @@ export function Inspector() {
           </Section>
         )}
 
-        {visual && (
-          <Section title={t('filters')} defaultOpen={false}>
-            {!canvasFiltersSupported() && <p className="muted">Canvas filters are not supported by this browser.</p>}
-            <div className="chips">
-              {FILTER_PRESETS.map((p) => (
-                <button key={p.name} className="chip" onClick={() => up((c) => void (c.filters = { ...DEFAULT_FILTERS, ...p.f }), true)}>
-                  {p.name}
-                </button>
-              ))}
-            </div>
-            <Slider label={t('brightness')} value={clip.filters.brightness} min={0} max={2} display={100} unit="%" onChange={(v) => up((c) => void (c.filters.brightness = v))} />
-            <Slider label={t('contrast')} value={clip.filters.contrast} min={0} max={2} display={100} unit="%" onChange={(v) => up((c) => void (c.filters.contrast = v))} />
-            <Slider label={t('saturation')} value={clip.filters.saturation} min={0} max={3} display={100} unit="%" onChange={(v) => up((c) => void (c.filters.saturation = v))} />
-            <Slider label={t('hue')} value={clip.filters.hue} min={-180} max={180} step={1} unit="°" onChange={(v) => up((c) => void (c.filters.hue = v))} />
-            <Slider label={t('blur')} value={clip.filters.blur} min={0} max={40} step={0.5} onChange={(v) => up((c) => void (c.filters.blur = v))} />
-            <Slider label={t('grayscale')} value={clip.filters.grayscale} min={0} max={1} display={100} unit="%" onChange={(v) => up((c) => void (c.filters.grayscale = v))} />
-            <Slider label={t('sepia')} value={clip.filters.sepia} min={0} max={1} display={100} unit="%" onChange={(v) => up((c) => void (c.filters.sepia = v))} />
-            <Slider label={t('invert')} value={clip.filters.invert} min={0} max={1} display={100} unit="%" onChange={(v) => up((c) => void (c.filters.invert = v))} />
-            <Slider label={t('vignette')} value={clip.filters.vignette} min={0} max={1} display={100} unit="%" onChange={(v) => up((c) => void (c.filters.vignette = v))} />
-          </Section>
-        )}
-
-        {(clip.type === 'video' || clip.type === 'image') && (
-          <Section title={t('chroma')} defaultOpen={false}>
-            <div className="row">
-              <Toggle label={t('enabled')} checked={clip.chroma.enabled} onChange={(v) => up((c) => void (c.chroma.enabled = v), true)} />
-              <label className="field inline">
-                <span className="field-label">{t('keyColor')}</span>
-                <input type="color" value={clip.chroma.color} onPointerDown={snapshot} onChange={(e) => up((c) => void (c.chroma.color = e.target.value))} />
-              </label>
-            </div>
-            <Slider label={t('similarity')} value={clip.chroma.similarity} min={0.01} max={1} display={100} unit="%" onChange={(v) => up((c) => void (c.chroma.similarity = v))} />
-            <Slider label={t('smoothness')} value={clip.chroma.smoothness} min={0} max={1} display={100} unit="%" onChange={(v) => up((c) => void (c.chroma.smoothness = v))} />
-          </Section>
-        )}
       </div>
     </div>
   );
