@@ -119,7 +119,7 @@ const he = {
   signIn: 'כניסה',
   signUp: 'הרשמה',
   signOut: 'יציאה',
-  checkEmail: 'נשלח אימייל אימות — אשרו אותו ואז היכנסו.',
+  checkEmail: 'שלחנו קישור אימות לאימייל — לחצו עליו כדי להשלים את ההרשמה.',
   saveToCloud: 'שמור פרויקט לענן',
   cloudProjects: 'פרויקטים בענן',
   open: 'פתח',
@@ -173,6 +173,11 @@ const he = {
   updatePassword: 'עדכן סיסמה',
   passwordUpdated: 'הסיסמה עודכנה',
   googleWaiting: 'ממשיכים בדפדפן…',
+  codeSent: 'שלחנו קוד אימות לאימייל שלך.',
+  code: 'קוד אימות',
+  verify: 'אמת',
+  resend: 'שלח שוב',
+  back: 'חזרה',
   sug4: 'סדר את הקליפים שלי ברצף עם מעברי fade',
 };
 
@@ -295,7 +300,7 @@ const en: Record<Key, string> = {
   signIn: 'Sign in',
   signUp: 'Sign up',
   signOut: 'Sign out',
-  checkEmail: 'Confirmation email sent — confirm it, then sign in.',
+  checkEmail: 'We emailed you a confirmation link — open it to finish signing up.',
   saveToCloud: 'Save project to cloud',
   cloudProjects: 'Cloud projects',
   open: 'Open',
@@ -349,6 +354,11 @@ const en: Record<Key, string> = {
   updatePassword: 'Update password',
   passwordUpdated: 'Password updated',
   googleWaiting: 'Continue in the browser…',
+  codeSent: 'We emailed you a verification code.',
+  code: 'Verification code',
+  verify: 'Verify',
+  resend: 'Resend',
+  back: 'Back',
   sug4: 'Arrange my clips in sequence with fade transitions',
 };
 

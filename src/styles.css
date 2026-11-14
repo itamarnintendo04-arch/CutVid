@@ -259,3 +259,4 @@ main.center { text-align: initial; }
 .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .link-btn { background: none; border: 0; padding: 4px; color: var(--accent-2); }
 .link-btn:hover:not(:disabled) { background: none; text-decoration: underline; }
+.code-input { font: 600 22px ui-monospace, Menlo, monospace !important; letter-spacing: 8px; text-align: center; }

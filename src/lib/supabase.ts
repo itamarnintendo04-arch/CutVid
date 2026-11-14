@@ -125,8 +125,45 @@ export async function signInWithGoogle() {
 export async function sendPasswordReset(email: string) {
   const { error } = await need().auth.resetPasswordForEmail(email, { redirectTo: redirectUrl() });
   if (error) throw new Error(error.message);
-  // On desktop, wait for the emailed link to be opened on this computer.
+  awaitDesktopLink();
+}
+
+/** Desktop: wait for an emailed link (confirmation, reset) to be opened on this computer. */
+function awaitDesktopLink() {
   if (window.cutvidAuth) window.cutvidAuth.start(null).then(completeAuth).catch(() => {});
+}
+
+/** Sign up. Returns true when Supabase requires the emailed confirmation link before signing in. */
+export async function signUpWithEmail(email: string, password: string): Promise<boolean> {
+  const { data, error } = await need().auth.signUp({ email, password, options: { emailRedirectTo: redirectUrl() } });
+  if (error) throw new Error(error.message);
+  if (data.session) return false;
+  awaitDesktopLink();
+  return true;
+}
+
+/**
+ * Step 1 of sign-in: check the password, then email a one-time code.
+ * The password session is dropped so the app only stays signed in after the code is verified.
+ * (This gate lives in the app; it is not server-enforced MFA.)
+ */
+export async function startEmailSignIn(email: string, password: string) {
+  const c = need();
+  const res = await c.auth.signInWithPassword({ email, password });
+  if (res.error) throw new Error(res.error.message);
+  await c.auth.signOut({ scope: 'local' });
+  await sendSignInCode(email);
+}
+
+export async function sendSignInCode(email: string) {
+  const { error } = await need().auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  if (error) throw new Error(error.message);
+}
+
+/** Step 2 of sign-in: verify the emailed code. */
+export async function verifySignInCode(email: string, token: string) {
+  const { error } = await need().auth.verifyOtp({ email, token: token.trim(), type: 'email' });
+  if (error) throw new Error(error.message);
 }
 
 /** iOS / Android: handle com.cutvid.app:// links (Google sign-in, password reset). */

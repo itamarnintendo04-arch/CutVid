@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CloudDownload, CloudUpload, LogOut, Trash2 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { useStore } from '../store';
 import { useT } from '../lib/i18n';
-import { clearConfig, clearRecovery, cloudDelete, cloudList, cloudLoad, cloudSave, getConfig, recoveryPending, sendPasswordReset, setConfig, signInWithGoogle, supabase, type CloudProject } from '../lib/supabase';
+import { clearConfig, clearRecovery, cloudDelete, cloudList, cloudLoad, cloudSave, getConfig, recoveryPending, sendPasswordReset, sendSignInCode, setConfig, signInWithGoogle, signUpWithEmail, startEmailSignIn, supabase, verifySignInCode, type CloudProject } from '../lib/supabase';
 import { Dialog } from './ui';
 
 export function CloudDialog({ onClose }: { onClose: () => void }) {
@@ -20,6 +20,10 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
   const [working, setWorking] = useState(false);
   const [recovering, setRecovering] = useState(recoveryPending);
   const [newPassword, setNewPassword] = useState('');
+  const [codeStep, setCodeStep] = useState(false);
+  const [code, setCode] = useState('');
+  // While the password step is in flight a short-lived session exists; do not show it as signed in.
+  const gating = useRef(false);
 
   const refresh = () =>
     cloudList()
@@ -30,7 +34,9 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
     const c = supabase();
     if (!c) return;
     c.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
-    const { data } = c.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
+    const { data } = c.auth.onAuthStateChange((_e, session) => {
+      if (!gating.current) setUser(session?.user ?? null);
+    });
     return () => data.subscription.unsubscribe();
   }, [cfg]);
 
@@ -72,10 +78,26 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
 
   const auth = (mode: 'in' | 'up') =>
     run(async () => {
-      const c = supabase()!;
-      const res = mode === 'in' ? await c.auth.signInWithPassword({ email, password }) : await c.auth.signUp({ email, password });
-      if (res.error) throw new Error(res.error.message);
-      if (mode === 'up' && !res.data.session) setStatus(t('checkEmail'));
+      if (mode === 'up') {
+        if (await signUpWithEmail(email.trim(), password)) setStatus(t('checkEmail'));
+        return;
+      }
+      gating.current = true;
+      try {
+        await startEmailSignIn(email.trim(), password);
+      } finally {
+        gating.current = false;
+      }
+      setCode('');
+      setCodeStep(true);
+      setStatus(t('codeSent'));
+    });
+
+  const verify = () =>
+    run(async () => {
+      await verifySignInCode(email.trim(), code);
+      setCodeStep(false);
+      setPassword('');
     });
 
   const google = () =>
@@ -143,6 +165,28 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
           <button className="primary" disabled={working || newPassword.length < 6} onClick={updatePassword}>
             {t('updatePassword')}
           </button>
+        </div>
+      ) : !user && codeStep ? (
+        <div className="stack">
+          <p className="muted">
+            <bdi>{email}</bdi>
+          </p>
+          <label className="field">
+            <span className="field-label">{t('code')}</span>
+            <input className="code-input" dir="ltr" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={10} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+          </label>
+          <div className="row">
+            <button className="primary" disabled={working || code.length < 6} onClick={verify}>
+              {t('verify')}
+            </button>
+            <button disabled={working} onClick={() => run(() => sendSignInCode(email.trim()).then(() => setStatus(t('codeSent'))))}>
+              {t('resend')}
+            </button>
+            <span className="spacer" />
+            <button className="link-btn" onClick={() => setCodeStep(false)}>
+              {t('back')}
+            </button>
+          </div>
         </div>
       ) : !user ? (
         <div className="stack">

@@ -103,6 +103,24 @@ npm run cap:ios       # יוצר ios/     → npx cap open ios  (דורש Mac + 
 2. ב‑Supabase: **Authentication → Emails → SMTP Settings → Enable custom SMTP** וממלאים Host, Port, Username, Password, כתובת שולח ושם שולח לפי הספק (ב‑Resend למשל: `smtp.resend.com`, פורט `465`, משתמש `resend`, והסיסמה היא ה‑API key).
 3. שומרים, ואז ב‑**Authentication → Rate Limits** מעלים את מגבלת המיילים לשעה לפי הצורך.
 
+### 6. קישור בהרשמה וקוד בהתחברות
+
+האפליקציה שולחת **קישור אימות בהרשמה** ו**קוד חד‑פעמי בהתחברות** (אחרי סיסמה נכונה). כדי שזה יעבוד:
+
+1. **Authentication → Sign In / Providers → Email** – מפעילים **Confirm email**.
+2. **Authentication → Emails → Templates → Magic Link** – מחליפים את גוף ההודעה כך שיציג את הקוד במקום קישור:
+
+   ```html
+   <h2>CutVid</h2>
+   <p>Your verification code:</p>
+   <p style="font-size:28px;letter-spacing:6px"><b>{{ .Token }}</b></p>
+   ```
+
+   (בלי `{{ .Token }}` Supabase ישלח קישור במקום קוד.) את תבנית **Confirm signup** משאירים עם `{{ .ConfirmationURL }}`.
+3. באותו מסך של Email אפשר לקבוע את אורך הקוד (6–10 ספרות) ואת תוקפו.
+
+הקוד בהתחברות נאכף באפליקציה ולא בשרת – זו שכבת אימות נוספת, לא MFA מלא. התחברות עם Google לא דורשת קוד.
+
 אחרי זה הרשמה באימייל שולחת מייל אימות, ו‑**Forgot password?** שולח קישור איפוס שחוזר לאפליקציה ומבקש סיסמה חדשה (בדסקטופ צריך לפתוח את הקישור באותו מחשב בתוך 15 דקות).
 
 בתוכנית החינמית קובץ בודד ב‑Storage מוגבל ל‑50MB (ניתן לשינוי ב‑*Storage → Settings*).
