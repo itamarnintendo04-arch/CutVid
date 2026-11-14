@@ -5,6 +5,8 @@ name: Build apps
 on:
   push:
     branches: [main, 'claude/**']
+    # Docs and Supabase-only changes do not need new app builds (macOS minutes are expensive).
+    paths-ignore: ['supabase/**', '**.md']
     tags: ['v*']
   workflow_dispatch:
 

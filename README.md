@@ -108,15 +108,7 @@ npm run cap:ios       # יוצר ios/     → npx cap open ios  (דורש Mac + 
 האפליקציה שולחת **קישור אימות בהרשמה** ו**קוד חד‑פעמי בהתחברות** (אחרי סיסמה נכונה). כדי שזה יעבוד:
 
 1. **Authentication → Sign In / Providers → Email** – מפעילים **Confirm email**.
-2. **Authentication → Emails → Templates → Magic Link** – מחליפים את גוף ההודעה כך שיציג את הקוד במקום קישור:
-
-   ```html
-   <h2>CutVid</h2>
-   <p>Your verification code:</p>
-   <p style="font-size:28px;letter-spacing:6px"><b>{{ .Token }}</b></p>
-   ```
-
-   (בלי `{{ .Token }}` Supabase ישלח קישור במקום קוד.) את תבנית **Confirm signup** משאירים עם `{{ .ConfirmationURL }}`.
+2. **Authentication → Emails → Templates** – מדביקים את התבניות המוכנות מהתיקייה [`supabase/templates/`](supabase/templates) (בתצוגת *Source*), עם הנושאים שבטבלה שם. החשובה ביותר היא **Magic Link** ← `magic_link.html`: היא מציגה את הקוד (`{{ .Token }}`); בלעדיה Supabase ישלח קישור במקום קוד.
 3. באותו מסך של Email אפשר לקבוע את אורך הקוד (6–10 ספרות) ואת תוקפו.
 
 הקוד בהתחברות נאכף באפליקציה ולא בשרת – זו שכבת אימות נוספת, לא MFA מלא. התחברות עם Google לא דורשת קוד.
