@@ -77,6 +77,7 @@
     "@anthropic-ai/sdk": "^1.8.0",
     "@capacitor-community/media": "^9.1.0",
     "@capacitor/app": "^8.1.2",
+    "@capacitor/background-runner": "^3.0.0",
     "@capacitor/browser": "^8.0.5",
     "@capacitor/core": "^8.6.2",
     "@capacitor/filesystem": "^8.1.5",

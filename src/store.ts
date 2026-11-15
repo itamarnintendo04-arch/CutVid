@@ -56,7 +56,7 @@ export function normalizeProject(p: Project): Project {
   };
 }
 
-export type PanelTab = 'media' | 'text' | 'elements' | 'overlays' | 'effects' | 'transitions' | 'filters' | 'keyframes' | 'ai';
+export type PanelTab = 'media' | 'text' | 'elements' | 'overlays' | 'effects' | 'transitions' | 'filters' | 'keyframes' | 'ai' | 'settings';
 
 const overlaps = (clips: Clip[], trackId: string, start: number, end: number, ignore?: string) =>
   clips.some((c) => c.trackId === trackId && c.id !== ignore && c.start < end - 1e-6 && clipEnd(c) > start + 1e-6);

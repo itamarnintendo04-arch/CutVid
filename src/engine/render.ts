@@ -562,12 +562,35 @@ export function drawFrame(ctx: Ctx, project: Project, t: number, opts: RenderOpt
       if (clip.trackId !== track.id || !isVisual(clip.type)) continue;
       const lt = t - clip.start;
       if (lt < 0 || lt >= clip.duration) continue;
-      drawClip(ctx, project, clip, lt, opts, useFilter);
+      const blur = clip.effects?.find((e) => e.type === 'motionBlur' && e.amount > 0);
+      if (!blur) {
+        drawClip(ctx, project, clip, lt, opts, useFilter);
+        continue;
+      }
+      // Motion blur: average several sub-frame positions of the clip (a virtual open shutter).
+      // Additive blending of N passes at 1/N opacity keeps still parts fully opaque.
+      const [acc, ag] = canvas('motion', ctx.canvas.width, ctx.canvas.height);
+      ag.clearRect(0, 0, acc.width, acc.height);
+      ag.setTransform(opts.scale, 0, 0, opts.scale, 0, 0);
+      const shutter = blur.amount * 0.08;
+      for (let i = 0; i < MOTION_SAMPLES; i++) {
+        const st = Math.max(0, lt - (shutter * i) / (MOTION_SAMPLES - 1));
+        drawClip(ag, project, clip, st, i === 0 ? opts : { ...opts, layouts: undefined }, useFilter, { alpha: 1 / MOTION_SAMPLES, blend: 'lighter' });
+      }
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      if (useFilter) ctx.filter = 'none';
+      ctx.globalCompositeOperation = clip.blend;
+      ctx.drawImage(acc, 0, 0);
+      ctx.restore();
     }
   }
 }
 
-function drawClip(ctx: Ctx, project: Project, clip: Clip, lt: number, opts: RenderOptions, useFilter: boolean) {
+const MOTION_SAMPLES = 16;
+
+function drawClip(ctx: Ctx, project: Project, clip: Clip, lt: number, opts: RenderOptions, useFilter: boolean, pass?: { alpha: number; blend: GlobalCompositeOperation }) {
   const W = project.width;
   const H = project.height;
   const unit = H / 1080;
@@ -655,8 +678,8 @@ function drawClip(ctx: Ctx, project: Project, clip: Clip, lt: number, opts: Rend
   ctx.rotate(((rotation + m.rot) * Math.PI) / 180);
   const s = scale * m.scale;
   ctx.scale(s * m.sx * (clip.transform.flipH ? -1 : 1) || 1e-4, s * m.sy * (clip.transform.flipV ? -1 : 1) || 1e-4);
-  ctx.globalAlpha = alpha;
-  ctx.globalCompositeOperation = clip.blend;
+  ctx.globalAlpha = alpha * (pass?.alpha ?? 1);
+  ctx.globalCompositeOperation = pass?.blend ?? clip.blend;
   if (m.wipe < 1) {
     const f = m.wipe;
     ctx.beginPath();
@@ -674,6 +697,11 @@ function drawClip(ctx: Ctx, project: Project, clip: Clip, lt: number, opts: Rend
 
   // Overlays that sit on top of the clip.
   if (useFilter) ctx.filter = 'none';
+  // Inside a motion-blur pass the overlays are skipped: they would break the additive average.
+  if (pass) {
+    ctx.restore();
+    return;
+  }
   ctx.globalCompositeOperation = 'source-over';
   const boxed = !!src || (!!clip.shape && !text);
   if (clip.filters.vignette > 0 && boxed) {

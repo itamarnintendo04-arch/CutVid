@@ -90,8 +90,8 @@ export type AnimationType =
 
 export const ANIMATION_TYPES: AnimationType[] = ['none', 'fade', 'slideLeft', 'slideRight', 'slideUp', 'slideDown', 'zoomIn', 'zoomOut', 'spin', 'wipe', 'wipeRight', 'wipeUp', 'wipeDown', 'iris', 'flipX', 'flipY', 'bounce', 'drop', 'swing', 'blur'];
 
-export type EffectType = 'shake' | 'pulse' | 'wobble' | 'float' | 'strobe' | 'flash' | 'rgbSplit' | 'glitch' | 'pixelate' | 'mirror' | 'grain' | 'scanlines' | 'hueCycle' | 'zoomPunch';
-export const EFFECT_TYPES: EffectType[] = ['shake', 'pulse', 'wobble', 'float', 'zoomPunch', 'strobe', 'flash', 'rgbSplit', 'glitch', 'pixelate', 'mirror', 'grain', 'scanlines', 'hueCycle'];
+export type EffectType = 'motionBlur' | 'shake' | 'pulse' | 'wobble' | 'float' | 'strobe' | 'flash' | 'rgbSplit' | 'glitch' | 'pixelate' | 'mirror' | 'grain' | 'scanlines' | 'hueCycle' | 'zoomPunch';
+export const EFFECT_TYPES: EffectType[] = ['motionBlur', 'shake', 'pulse', 'wobble', 'float', 'zoomPunch', 'strobe', 'flash', 'rgbSplit', 'glitch', 'pixelate', 'mirror', 'grain', 'scanlines', 'hueCycle'];
 
 export interface ClipEffect {
   type: EffectType;

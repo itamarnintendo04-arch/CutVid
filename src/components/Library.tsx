@@ -1,12 +1,12 @@
 import { useRef } from 'react';
-import { AlertTriangle, Blend, Diamond, Film, Image as ImageIcon, Layers2, Music, Plus, Shapes, SlidersHorizontal, Sparkles, Trash2, Type, Upload, Wand2, Zap } from 'lucide-react';
+import { AlertTriangle, Blend, Diamond, Settings, Film, Image as ImageIcon, Layers2, Music, Plus, Shapes, SlidersHorizontal, Sparkles, Trash2, Type, Upload, Wand2, Zap } from 'lucide-react';
 import { useStore, type PanelTab } from '../store';
 import { media } from '../engine/media';
 import { formatTime, useT, type TKey } from '../lib/i18n';
 import type { TextStyle } from '../types';
 import { DEFAULT_TEXT } from '../types';
 import { AiPanel } from './AiPanel';
-import { EffectsPanel, ElementsPanel, FiltersPanel, KeyframesPanel, OverlaysPanel, TransitionsPanel } from './Panels';
+import { EffectsPanel, ElementsPanel, FiltersPanel, KeyframesPanel, OverlaysPanel, SettingsPanel, TransitionsPanel } from './Panels';
 
 export async function importFiles(files: FileList | File[]) {
   const st = useStore.getState();
@@ -36,6 +36,7 @@ export const TABS: { id: PanelTab; label: TKey; icon: typeof Film }[] = [
   { id: 'filters', label: 'filters', icon: Wand2 },
   { id: 'keyframes', label: 'keyframes', icon: Diamond },
   { id: 'ai', label: 'ai', icon: Sparkles },
+  { id: 'settings', label: 'settings', icon: Settings },
 ];
 export const EDIT_ICON = SlidersHorizontal;
 
@@ -196,6 +197,7 @@ export function Library() {
       {tab === 'filters' && <FiltersPanel />}
       {tab === 'keyframes' && <KeyframesPanel />}
       {tab === 'ai' && <AiPanel />}
+      {tab === 'settings' && <SettingsPanel />}
     </div>
   );
 }

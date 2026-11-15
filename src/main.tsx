@@ -4,6 +4,8 @@ import { App } from './App';
 import { initNativeAuth, supabase } from './lib/supabase';
 import { watchPresets } from './lib/presets';
 import { startSync } from './lib/sync';
+import { configureBackgroundUpdates } from './lib/notify';
+import { useSettings } from './lib/settings';
 import './lib/fonts';
 import './styles.css';
 
@@ -12,6 +14,7 @@ supabase();
 initNativeAuth();
 watchPresets();
 startSync();
+configureBackgroundUpdates(useSettings.getState().notifyUpdates);
 
 createRoot(document.getElementById('root')!).render(<App />);
 

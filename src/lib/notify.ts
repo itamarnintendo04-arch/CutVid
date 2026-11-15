@@ -25,6 +25,13 @@ export async function requestNotify(): Promise<NotifyState> {
     if (native()) {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       const { display } = await LocalNotifications.requestPermissions();
+      // The background update check posts through its own channel; ask for that too.
+      try {
+        const { BackgroundRunner } = await import('@capacitor/background-runner');
+        await BackgroundRunner.requestPermissions({ apis: ['notifications'] });
+      } catch {
+        /* background checks are optional */
+      }
       return display === 'granted' ? 'granted' : 'denied';
     }
     if (!('Notification' in window)) return 'unsupported';
@@ -36,8 +43,10 @@ export async function requestNotify(): Promise<NotifyState> {
 }
 
 /** Best-effort local notification (export finished, update available). Silent when not permitted. */
-export async function notify(title: string, body: string) {
+export async function notify(title: string, body: string, onlyWhenHidden = false) {
   try {
+    // While the user is looking at the app the result is already on screen.
+    if (onlyWhenHidden && !document.hidden) return;
     if ((await notifyState()) !== 'granted') return;
     if (native()) {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
@@ -60,5 +69,16 @@ export async function checkForUpdate(siteUrl: string): Promise<number | null> {
     return typeof version === 'number' && version > APP_VERSION ? version : null;
   } catch {
     return null;
+  }
+}
+
+/** Tell the background task which build is installed and whether update notifications are wanted. */
+export async function configureBackgroundUpdates(enabled: boolean) {
+  if (!native()) return;
+  try {
+    const { BackgroundRunner } = await import('@capacitor/background-runner');
+    await BackgroundRunner.dispatchEvent({ label: 'com.cutvid.app.update', event: 'configure', details: { version: APP_VERSION, enabled } });
+  } catch {
+    /* not available on this device */
   }
 }

@@ -8,6 +8,10 @@ import { EASINGS, easeFn, findKeyframe, propAt } from '../engine/keyframes';
 import { canvasFiltersSupported, drawShape } from '../engine/render';
 import { deletePreset, savePreset, usePresets, type PresetData, type PresetKind } from '../lib/presets';
 import { Section, Slider, Toggle } from './ui';
+import { setSetting, useSettings } from '../lib/settings';
+import { configureBackgroundUpdates, notifyState, requestNotify, type NotifyState } from '../lib/notify';
+import { savesToGallery } from '../lib/save';
+import { APP_VERSION } from '../version';
 
 // ---- shared -------------------------------------------------------------------------------
 
@@ -496,6 +500,86 @@ export function KeyframesPanel() {
           );
         }}
       </NeedClip>
+    </div>
+  );
+}
+
+// ---- settings -----------------------------------------------------------------------------
+
+export function SettingsPanel() {
+  const t = useT();
+  const s = useSettings();
+  const lang = useStore((st) => st.lang);
+  const [perm, setPerm] = useState<NotifyState>('unsupported');
+  useEffect(() => {
+    notifyState().then(setPerm);
+  }, []);
+
+  return (
+    <div className="panel-scroll">
+      <Section title={t('notifications')}>
+        {perm === 'prompt' && (
+          <button className="primary" onClick={() => requestNotify().then(setPerm)}>
+            {t('notifyAllow')}
+          </button>
+        )}
+        {perm === 'denied' && <p className="muted small">{t('notifyBlocked')}</p>}
+        <Toggle label={t('setNotifyAi')} checked={s.notifyAi} onChange={(v) => setSetting('notifyAi', v)} />
+        <Toggle label={t('setNotifyExport')} checked={s.notifyExport} onChange={(v) => setSetting('notifyExport', v)} />
+        <Toggle
+          label={t('setNotifyUpdates')}
+          checked={s.notifyUpdates}
+          onChange={(v) => {
+            setSetting('notifyUpdates', v);
+            configureBackgroundUpdates(v);
+          }}
+        />
+        <p className="muted small">{t('setNotifyUpdatesHint')}</p>
+      </Section>
+
+      <Section title={t('export')}>
+        <Toggle label={savesToGallery() ? t('setAutoSaveGallery') : t('setAutoSave')} checked={s.autoSave} onChange={(v) => setSetting('autoSave', v)} />
+        <label className="field">
+          <span className="field-label">{t('resolution')}</span>
+          <select value={s.exportShort} onChange={(e) => setSetting('exportShort', +e.target.value)}>
+            <option value={480}>480p</option>
+            <option value={720}>720p</option>
+            <option value={1080}>1080p</option>
+            <option value={1440}>1440p</option>
+            <option value={2160}>4K</option>
+          </select>
+        </label>
+        <label className="field">
+          <span className="field-label">{t('fps')}</span>
+          <select value={s.exportFps} onChange={(e) => setSetting('exportFps', +e.target.value)}>
+            <option value={0}>{t('sameAsProject')}</option>
+            {[24, 25, 30, 50, 60].map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field-label">{t('quality')}</span>
+          <select value={s.exportQuality} onChange={(e) => setSetting('exportQuality', e.target.value as 'low')}>
+            <option value="low">{t('low')}</option>
+            <option value="medium">{t('medium')}</option>
+            <option value="high">{t('high')}</option>
+          </select>
+        </label>
+      </Section>
+
+      <Section title={t('general')}>
+        <label className="field">
+          <span className="field-label">{t('language')}</span>
+          <select value={lang} onChange={(e) => useStore.getState().setLang(e.target.value as 'he')}>
+            <option value="en">English</option>
+            <option value="he">עברית</option>
+          </select>
+        </label>
+        <p className="muted small">CutVid · build {APP_VERSION}</p>
+      </Section>
     </div>
   );
 }

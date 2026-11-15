@@ -37,8 +37,6 @@ export const PROVIDERS: ProviderDef[] = [
 export interface ProviderConfig {
   key: string;
   model: string;
-  /** Model used for picture generation (OpenAI-compatible /images/generations). Optional. */
-  imageModel: string;
   baseUrl: string;
 }
 
@@ -70,7 +68,7 @@ export function configFor(s: AiSettings, id: string): ProviderConfig {
   const def = providerDef(id);
   const saved = s.configs[id];
   // Only self-hosted style providers let the user change the endpoint.
-  return { key: saved?.key ?? '', model: saved?.model ?? '', imageModel: saved?.imageModel ?? '', baseUrl: def.customUrl ? (saved?.baseUrl ?? def.baseUrl) : def.baseUrl };
+  return { key: saved?.key ?? '', model: saved?.model ?? '', baseUrl: def.customUrl ? (saved?.baseUrl ?? def.baseUrl) : def.baseUrl };
 }
 
 export interface ChatMessage {
@@ -192,62 +190,3 @@ export async function chat(providerId: string, cfg: ProviderConfig, system: stri
   throw new Error('The provider returned an empty reply');
 }
 
-// ---- images -------------------------------------------------------------------------------
-
-function b64ToBlob(b64: string, type = 'image/png'): Blob {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new Blob([bytes], { type });
-}
-
-/** Whether this provider setup can make pictures at all. */
-export function canGenerateImages(providerId: string, cfg: ProviderConfig): boolean {
-  const def = providerDef(providerId);
-  if (def.wire === 'cutvid') return true; // decided by the server's configuration
-  return def.wire === 'openai' && !!cfg.imageModel;
-}
-
-/** Generate one picture from a text prompt. `size` is a hint such as "1536x1024". */
-export async function generateImage(providerId: string, cfg: ProviderConfig, prompt: string, size: string): Promise<Blob> {
-  const def = providerDef(providerId);
-
-  if (def.wire === 'cutvid') {
-    const c = supabase();
-    if (!c) throw new Error('CutVid AI needs the Supabase cloud to be connected');
-    const { data, error } = await c.functions.invoke('cutvid-ai', { body: { image: { prompt, size } } });
-    if (error) {
-      let detail = error.message;
-      try {
-        const body = await (error as { context?: Response }).context?.json();
-        if (body?.error) detail = body.error;
-      } catch {
-        /* keep the generic message */
-      }
-      throw new Error(detail);
-    }
-    if (data?.error) throw new Error(data.error);
-    if (!data?.b64) throw new Error('The image service returned nothing');
-    return b64ToBlob(data.b64, data.mime || 'image/png');
-  }
-
-  if (def.wire !== 'openai' || !cfg.imageModel) throw new Error('Set an image model in the provider settings to generate pictures');
-  const call = (withSize: boolean) =>
-    universalFetch(`${baseOf(cfg)}/images/generations`, {
-      method: 'POST',
-      headers: openAiHeaders(cfg),
-      body: JSON.stringify({ model: cfg.imageModel, prompt, n: 1, ...(withSize ? { size } : {}) }),
-    });
-  let res = await call(true);
-  // Size names differ between providers; retry once with the provider's default.
-  if (res.status === 400) res = await call(false);
-  const json = await openAiJson(res);
-  const item = json?.data?.[0];
-  if (item?.b64_json) return b64ToBlob(item.b64_json);
-  if (item?.url) {
-    const img = await fetch(item.url);
-    if (!img.ok) throw new Error(`Could not download the generated image (${img.status})`);
-    return img.blob();
-  }
-  throw new Error('The provider returned no image');
-}

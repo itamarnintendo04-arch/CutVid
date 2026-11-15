@@ -4,6 +4,7 @@ import { useStore, totalDuration } from '../store';
 import { exportProject, exportSupported, type ExportResult } from '../engine/export';
 import { saveBlob, savesToGallery, type SaveResult } from '../lib/save';
 import { notify } from '../lib/notify';
+import { useSettings } from '../lib/settings';
 import { useT } from '../lib/i18n';
 import { Dialog } from './ui';
 
@@ -13,10 +14,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const t = useT();
   const project = useStore((s) => s.project);
   const duration = useStore(totalDuration);
-  const [short, setShort] = useState(1080); // length of the frame's short side
+  const settings = useSettings.getState();
+  const [short, setShort] = useState(settings.exportShort); // length of the frame's short side
   const [saved, setSaved] = useState<SaveResult | null>(null);
-  const [fps, setFps] = useState(project.fps);
-  const [quality, setQuality] = useState<keyof typeof BPP>('medium');
+  const [fps, setFps] = useState(settings.exportFps || project.fps);
+  const [quality, setQuality] = useState<keyof typeof BPP>(settings.exportQuality);
   const [progress, setProgress] = useState<number | null>(null);
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState('');
@@ -29,6 +31,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const estMb = (bitrate * duration) / 8 / 1e6;
   const running = progress !== null && !result;
 
+  const nameFor = (ext: string) => `${project.name.replace(/[^\p{L}\p{N}_-]+/gu, '_') || 'cutvid'}.${ext}`;
+
   const start = async () => {
     setError('');
     setResult(null);
@@ -36,8 +40,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     useStore.getState().setPlaying(false);
     abort.current = new AbortController();
     try {
-      setResult(await exportProject(project, { width, height, fps, bitrate }, setProgress, abort.current.signal));
-      notify('CutVid', t('exportDone'));
+      const done = await exportProject(project, { width, height, fps, bitrate }, setProgress, abort.current.signal);
+      setResult(done);
+      const s = useSettings.getState();
+      if (s.notifyExport) notify('CutVid', t('exportDone'));
+      // Save straight away (gallery on phones, Downloads on computers) unless turned off in Settings.
+      if (s.autoSave && (savesToGallery() || !matchMedia('(pointer: coarse)').matches)) {
+        saveBlob(done.blob, nameFor(done.ext)).then(setSaved, (e) => setError(e.message));
+      }
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setError((e as Error).message);
       setProgress(null);
@@ -49,7 +59,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
-  const filename = `${project.name.replace(/[^\p{L}\p{N}_-]+/gu, '_') || 'cutvid'}.${result?.ext ?? 'mp4'}`;
+  const filename = nameFor(result?.ext ?? 'mp4');
 
   return (
     <Dialog title={t('exportTitle')} onClose={close}>
@@ -64,9 +74,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           </p>
           {!result.hasAudio && project.clips.some((c) => c.type === 'audio' || c.type === 'video') && <p className="muted">{t('noAudioEncoder')}</p>}
           <button className="primary" onClick={() => saveBlob(result.blob, filename).then(setSaved, (e) => setError(e.message))}>
-            <Download size={16} /> {savesToGallery() ? t('saveToGallery') : t('save')}
+            <Download size={16} /> {saved ? t('saveAgain') : savesToGallery() ? t('saveToGallery') : t('save')}
           </button>
           {saved === 'gallery' && <p className="ok">{t('savedToGallery')} ✓</p>}
+          {saved === 'downloaded' && <p className="ok">{t('savedToDownloads')} ✓</p>}
         </div>
       ) : running ? (
         <div className="stack">

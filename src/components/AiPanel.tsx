@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Eraser, RefreshCw, Send, Sparkles } from 'lucide-react';
 import { useStore } from '../store';
 import { useT, type TKey } from '../lib/i18n';
-import { PROVIDERS, canGenerateImages, chat, configFor, generateImage, listModels, loadAiSettings, providerDef, saveAiSettings, type AiSettings, type ChatMessage, type ProviderConfig } from '../ai/providers';
-import { SYSTEM_PROMPT, applyOps, imageOps, imageSizeFor, parseReply, projectSummary, type GeneratedAssets } from '../ai/assistant';
-import { media } from '../engine/media';
+import { PROVIDERS, chat, configFor, listModels, loadAiSettings, providerDef, saveAiSettings, type AiSettings, type ChatMessage, type ProviderConfig } from '../ai/providers';
+import { SYSTEM_PROMPT, applyOps, parseReply, projectSummary } from '../ai/assistant';
+import { notify } from '../lib/notify';
+import { useSettings } from '../lib/settings';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -27,7 +28,6 @@ export function AiPanel() {
   const [turns, setTurns] = useState<Turn[]>(savedTurns);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState('');
   const [models, setModels] = useState<string[]>(() => modelCache.get(settings.provider) ?? []);
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelError, setModelError] = useState('');
@@ -85,36 +85,14 @@ export function AiPanel() {
     try {
       const raw = await chat(def.id, cfg, SYSTEM_PROMPT, [...history, { role: 'user', content: `Current project:\n${context}\n\nRequest: ${request}` }]);
       const reply = parseReply(raw);
-      // Pictures are generated first, imported as media, then placed by the same batch of operations.
-      const generated: GeneratedAssets = new Map();
-      const wanted = imageOps(reply.ops);
-      let imageError = '';
-      if (wanted.length && !canGenerateImages(def.id, cfg)) imageError = t('imageNeedsModel');
-      else
-        for (let i = 0; i < wanted.length; i++) {
-          setProgress(`${t('creatingImage')} ${i + 1}/${wanted.length}`);
-          try {
-            const blob = await generateImage(def.id, cfg, wanted[i].prompt, imageSizeFor(useStore.getState().project));
-            const ext = blob.type.includes('jpeg') ? 'jpg' : blob.type.includes('webp') ? 'webp' : 'png';
-            const asset = await media.importFile(new File([blob], `AI ${wanted[i].prompt.slice(0, 40)}.${ext}`, { type: blob.type || 'image/png' }));
-            if (!asset) throw new Error(t('unsupportedFile'));
-            useStore.getState().addAsset(asset);
-            generated.set(wanted[i], asset.id);
-          } catch (e) {
-            imageError = (e as Error).message;
-            break;
-          }
-        }
-      setProgress('');
-      const applied = reply.ops.length ? applyOps(reply.ops, generated) : 0;
-      const parts = [reply.ops.length ? (applied ? `${applied} ${t('applied')}` : t('noChanges')) : '', imageError ? `${t('imageFailed')}: ${imageError}` : ''].filter(Boolean);
-      const note = parts.join(' · ') || undefined;
+      const applied = reply.ops.length ? applyOps(reply.ops) : 0;
+      const note = reply.ops.length ? (applied ? `${applied} ${t('applied')}` : t('noChanges')) : undefined;
+      if (useSettings.getState().notifyAi) notify('CutVid AI', reply.message || (note ?? '✓'));
       setTurns((prev) => [...prev, { role: 'assistant', text: reply.message || (applied ? '✓' : raw.slice(0, 400)), wire: raw, note }]);
     } catch (e) {
       setTurns((prev) => [...prev, { role: 'assistant', text: (e as Error).message, wire: '', error: true }]);
     } finally {
       setBusy(false);
-      setProgress('');
     }
   };
 
@@ -176,17 +154,6 @@ export function AiPanel() {
                   <input dir="ltr" type="text" placeholder="model-id" value={cfg.model} onChange={(e) => patch({ model: e.target.value.trim() })} />
                 )}
               </label>
-              {def.wire === 'openai' && (
-                <label className="field">
-                  <span className="field-label">{t('imageModel')}</span>
-                  <input dir="ltr" type="text" list="cutvid-image-models" placeholder={t('imageModelHint')} value={cfg.imageModel} onChange={(e) => patch({ imageModel: e.target.value.trim() })} />
-                  <datalist id="cutvid-image-models">
-                    {models.filter((m) => /image|imagen|dall|flux|diffusion/i.test(m)).map((m) => (
-                      <option key={m} value={m} />
-                    ))}
-                  </datalist>
-                </label>
-              )}
               {modelError && <p className="error small">{modelError}</p>}
               <p className="muted small">{t('keyStoredLocally')}</p>
             </>
@@ -214,7 +181,7 @@ export function AiPanel() {
             {x.note && <small className="bubble-note">{x.note}</small>}
           </div>
         ))}
-        {busy && <div className="bubble assistant muted">{progress || t('thinking')}</div>}
+        {busy && <div className="bubble assistant muted">{t('thinking')}</div>}
       </div>
 
       <form
