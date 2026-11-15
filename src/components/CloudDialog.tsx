@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { CloudDownload, CloudUpload, LogOut, Trash2 } from 'lucide-react';
+import { CloudUpload, LogOut } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
-import { useStore } from '../store';
 import { useT } from '../lib/i18n';
-import { clearConfig, clearRecovery, cloudDelete, cloudList, cloudLoad, cloudSave, getConfig, recoveryPending, sendPasswordReset, sendSignInCode, setConfig, signInWithGoogle, signUpWithEmail, startEmailSignIn, supabase, verifySignInCode, type CloudProject } from '../lib/supabase';
-import { openProject } from './Home';
+import { clearConfig, clearRecovery, getConfig, recoveryPending, sendPasswordReset, sendSignInCode, setConfig, signInWithGoogle, signUpWithEmail, startEmailSignIn, supabase, verifySignInCode } from '../lib/supabase';
+import { syncAll, useSync } from '../lib/sync';
 import { Dialog } from './ui';
 
 export function CloudDialog({ onClose }: { onClose: () => void }) {
@@ -15,21 +14,16 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [list, setList] = useState<CloudProject[] | null>(null);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [working, setWorking] = useState(false);
+  const sync = useSync();
   const [recovering, setRecovering] = useState(recoveryPending);
   const [newPassword, setNewPassword] = useState('');
   const [codeStep, setCodeStep] = useState(false);
   const [code, setCode] = useState('');
   // While the password step is in flight a short-lived session exists; do not show it as signed in.
   const gating = useRef(false);
-
-  const refresh = () =>
-    cloudList()
-      .then(setList)
-      .catch((e) => setError(e.message));
 
   useEffect(() => {
     const c = supabase();
@@ -51,11 +45,6 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
       window.removeEventListener('cutvid:auth-error', onAuthError);
     };
   }, []);
-
-  useEffect(() => {
-    if (user) refresh();
-    else setList(null);
-  }, [user]);
 
   const run = async (fn: () => Promise<void>) => {
     setError('');
@@ -123,21 +112,6 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
       setRecovering(false);
       setNewPassword('');
       setStatus(t('passwordUpdated') + ' ✓');
-    });
-
-  const save = () =>
-    run(async () => {
-      await cloudSave(useStore.getState().project, setStatus);
-      setStatus(t('saved') + ' ✓');
-      await refresh();
-    });
-
-  const open = (id: string) =>
-    run(async () => {
-      setStatus(t('loading'));
-      const p = await cloudLoad(id, setStatus);
-      await openProject(p);
-      onClose();
     });
 
   return (
@@ -249,25 +223,14 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
               <LogOut size={14} /> {t('signOut')}
             </button>
           </div>
-          <button className="primary" disabled={working} onClick={save}>
-            <CloudUpload size={16} /> {t('saveToCloud')}
-          </button>
-          <h3>{t('cloudProjects')}</h3>
-          {list === null ? <p className="muted">{t('loading')}</p> : !list.length ? <p className="muted">{t('noCloudProjects')}</p> : null}
-          <ul className="list">
-            {list?.map((p) => (
-              <li key={p.id}>
-                <span className="list-name">{p.name}</span>
-                <small className="muted">{new Date(p.updated_at).toLocaleString()}</small>
-                <button disabled={working} onClick={() => open(p.id)}>
-                  <CloudDownload size={14} /> {t('open')}
-                </button>
-                <button className="icon-btn small" disabled={working} aria-label={t('delete')} onClick={() => run(() => cloudDelete(p.id).then(refresh))}>
-                  <Trash2 size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <p className="muted">{t('syncAuto')}</p>
+          <div className="row">
+            <button className="primary" disabled={sync.status === 'syncing'} onClick={() => syncAll()}>
+              <CloudUpload size={16} /> {t('syncNow')}
+            </button>
+            <span className={sync.status === 'error' ? 'error' : 'ok'}>{t(sync.status === 'syncing' ? 'syncing' : sync.status === 'error' ? 'syncError' : 'synced')}</span>
+          </div>
+          {sync.detail && <p className={(sync.status === 'error' ? 'error' : 'muted') + ' small'}>{sync.detail}</p>}
         </div>
       )}
       {status && <p className="muted">{status}</p>}

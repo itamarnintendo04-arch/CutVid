@@ -4,7 +4,7 @@ import type { AnimProp, BlendMode, Clip, Easing, EffectType, Keyframe, Project, 
 import { ANIMATION_TYPES, ANIM_PROPS, DEFAULT_TEXT, EFFECT_TYPES, clipEnd, projectDuration } from '../types';
 import { EASINGS } from '../engine/keyframes';
 
-export const SYSTEM_PROMPT = `You are CutVid AI, the assistant inside the CutVid video editor. You build and edit the user's timeline by returning a list of operations. You can create motion graphics and whole videos out of text, shapes and the media files already imported into the project. You cannot generate new footage, images or audio; when a request needs media that is not in the project, build the best version you can from text and shapes and say what is missing.
+export const SYSTEM_PROMPT = `You are CutVid AI, the assistant inside the CutVid video editor. You build and edit the user's timeline by returning a list of operations. You can create motion graphics and whole videos out of text, shapes and the media files already imported into the project. You can also create new still pictures with generateImage. You cannot generate video footage or audio; when a request needs footage that is not in the project, combine generated pictures (animated with keyframes: slow zooms, pans) with text and shapes, and say so.
 
 Reply with ONE JSON object and nothing else (no markdown fence):
 {"message": "<one or two sentences to the user, in the language they wrote in>", "ops": [ ...operations... ]}
@@ -22,6 +22,7 @@ Operations
   text fields: size, color, bold, italic, font ("sans"|"rounded"|"display"|"condensed"|"serif"|"script"|"marker"|"mono"|"impact"), align ("left"|"center"|"right"), stroke, strokeWidth, background (colour or ""), shadow, glow (0-80) with glowColor, typewriter (bool)
 - {"op":"addShape","id":"s1","kind":"rect"|"ellipse"|"triangle"|"star"|"heart"|"arrow"|"diamond"|"hexagon"|"line"|"bubble"|"ring"|"frame"|"letterbox"|"vignette"|"scanlines"|"grain","fill":"#rrggbb","fill2":"#rrggbb" (optional, makes a gradient), "gradientAngle":90,"width":1,"height":1,"radius":0,"start":0,"duration":3, ...common fields}
 - {"op":"addMedia","id":"m1","asset":"a1","start":0,"duration":4,"offset":0,"speed":1,"volume":1, ...common fields}  ("asset" is an alias from the project summary; "offset" is the in-point inside the file; omit "duration" to use the rest of the file)
+- {"op":"generateImage","id":"g1","prompt":"a detailed description of the picture, in English","start":0,"duration":4, ...common fields}  (creates a new picture with an image model and places it like addMedia. Use it for backgrounds, illustrations and photos the user asks for; at most 4 per reply. Animate it with keyframes, e.g. scale 1 -> 1.15, so it feels like video.)
 - {"op":"updateClip","clip":"c1", ...any field listed here}  (only the fields you include change)
 - {"op":"deleteClip","clip":"c1"}
 - {"op":"setProject","width":1080,"height":1920,"fps":30,"background":"#000000"}
@@ -202,8 +203,20 @@ function applyFields(c: Draft<Clip>, o: any) {
   }
 }
 
+/** A picture made for a generateImage op, already imported as a project asset. */
+export type GeneratedAssets = Map<any, string>;
+
+/** Ops that need a picture generated before they can be applied. */
+export const imageOps = (ops: any[]) => ops.filter((o) => o && o.op === 'generateImage' && typeof o.prompt === 'string' && o.prompt.trim()).slice(0, 4);
+
+/** Pick the generation size closest to the project's frame. */
+export function imageSizeFor(p: Project): string {
+  const r = p.width / p.height;
+  return r > 1.2 ? '1536x1024' : r < 0.83 ? '1024x1536' : '1024x1024';
+}
+
 /** Apply a model's operations as a single undoable edit. Returns how many were applied. */
-export function applyOps(ops: any[]): number {
+export function applyOps(ops: any[], generated: GeneratedAssets = new Map()): number {
   let applied = 0;
   const st = useStore.getState();
   st.mutate((p) => {
@@ -230,8 +243,9 @@ export function applyOps(ops: any[]): number {
           clip = baseClip({ type: 'shape', name: KINDS.includes(o.kind) ? o.kind : 'rect', trackId: trackAbove(p, start, start + duration), start, duration, shape: { kind: 'rect', fill: '#7c5cff', width: 0.3, height: 0.3, radius: 0 } });
           break;
         }
+        case 'generateImage':
         case 'addMedia': {
-          const asset = assets.get(String(o.asset)) ?? p.assets.find((a) => a.name === o.asset);
+          const asset = o.op === 'generateImage' ? p.assets.find((a) => a.id === generated.get(o)) : (assets.get(String(o.asset)) ?? p.assets.find((a) => a.name === o.asset));
           if (!asset) continue;
           const speed = num(o.speed, 0.1, 8) ?? 1;
           const timed = asset.kind !== 'image';

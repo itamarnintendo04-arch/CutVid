@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { App } from './App';
 import { initNativeAuth, supabase } from './lib/supabase';
 import { watchPresets } from './lib/presets';
+import { startSync } from './lib/sync';
 import './lib/fonts';
 import './styles.css';
 
@@ -10,6 +11,7 @@ import './styles.css';
 supabase();
 initNativeAuth();
 watchPresets();
+startSync();
 
 createRoot(document.getElementById('root')!).render(<App />);
 

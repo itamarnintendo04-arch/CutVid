@@ -1,17 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Bell, Cloud, Languages, MessageSquareText, Plus, Trash2, X } from 'lucide-react';
+import { Bell, Cloud, CloudAlert, CloudCheck, Languages, MessageSquareText, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { emptyProject, useStore } from '../store';
 import { dbAll, dbDel, dbSet } from '../lib/db';
 import { media } from '../engine/media';
 import { useT } from '../lib/i18n';
 import { checkForUpdate, notify, notifyState, requestNotify, type NotifyState } from '../lib/notify';
-import { SITE_URL } from '../lib/supabase';
+import { SITE_URL, downloadMissing } from '../lib/supabase';
+import { deleteEverywhere, syncAll, useSync } from '../lib/sync';
 import type { Project } from '../types';
 import { projectDuration } from '../types';
 import { AspectPicker } from './AspectPicker';
 
 export async function openProject(p: Project) {
-  await media.restore(p.assets);
+  // Media that only exists in the cloud is fetched now; whatever is still missing shows a warning badge.
+  useStore.getState().setBusy('loading');
+  try {
+    await downloadMissing(p);
+  } catch {
+    await media.restore(p.assets);
+  } finally {
+    useStore.getState().setBusy(null);
+  }
   const st = useStore.getState();
   st.loadProject(p);
   st.setScreen('editor');
@@ -28,10 +37,15 @@ export function Home({ onCloud, onFeedback }: { onCloud: () => void; onFeedback:
   const [notifyPerm, setNotifyPerm] = useState<NotifyState>('unsupported');
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(NOTIFY_DISMISSED) === '1');
   const [update, setUpdate] = useState<number | null>(null);
+  const sync = useSync();
 
   const refresh = () => dbAll<Project>('projects').then((all) => setList(all.sort((a, b) => b.updatedAt - a.updatedAt)));
+  // Reload the list whenever a sync pulled or removed projects.
   useEffect(() => {
     refresh();
+  }, [sync.rev]);
+  useEffect(() => {
+    syncAll();
     notifyState().then(setNotifyPerm);
     checkForUpdate(SITE_URL).then((v) => {
       setUpdate(v);
@@ -48,6 +62,7 @@ export function Home({ onCloud, onFeedback }: { onCloud: () => void; onFeedback:
   const remove = async (p: Project) => {
     if (!confirm(`${t('delete')} "${p.name}"?`)) return;
     await dbDel('projects', p.id);
+    await deleteEverywhere(p.id);
     // Media blobs are only deleted when no other local project references them.
     const others = (await dbAll<Project>('projects')).flatMap((x) => x.assets.map((a) => a.id));
     for (const a of p.assets) if (!others.includes(a.id)) media.release(a.id, true);
@@ -113,7 +128,17 @@ export function Home({ onCloud, onFeedback }: { onCloud: () => void; onFeedback:
         </section>
 
         <section>
-          <h2>{t('projects')}</h2>
+          <h2 className="with-status">
+            {t('projects')}
+            {sync.status !== 'off' && (
+              <button className={'sync-chip ' + sync.status} onClick={() => syncAll()} title={sync.detail || t('syncNow')}>
+                {sync.status === 'syncing' ? <RefreshCw size={13} className="spin" /> : sync.status === 'error' ? <CloudAlert size={14} /> : <CloudCheck size={14} />}
+                {t(sync.status === 'syncing' ? 'syncing' : sync.status === 'error' ? 'syncError' : 'synced')}
+              </button>
+            )}
+          </h2>
+          {sync.status === 'off' && <p className="muted small pad-b">{t('syncOff')}</p>}
+          {sync.detail && <p className={(sync.status === 'error' ? 'error' : 'muted') + ' small pad-b'}>{sync.detail}</p>}
           {!list.length && <p className="muted">{t('noProjects')}</p>}
           <div className="project-grid">
             {list.map((p) => (

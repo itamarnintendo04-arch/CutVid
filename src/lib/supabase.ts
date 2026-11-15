@@ -197,22 +197,47 @@ export interface CloudProject {
   updated_at: string;
 }
 
-/** Upload missing media files to Storage, then upsert the project JSON. */
-export async function cloudSave(project: Project, onProgress: (msg: string) => void) {
+const uploadedKey = (uid: string) => `cutvid:uploaded:${uid}`;
+function uploadedSet(uid: string): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(uploadedKey(uid)) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+/** Id of the signed-in user, or null. Does not hit the network. */
+export async function currentUserId(): Promise<string | null> {
+  const c = supabase();
+  if (!c) return null;
+  const { data } = await c.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
+/**
+ * Upload media files that are not in Storage yet, then upsert the project JSON.
+ * Returns the names of files that could not be uploaded (e.g. over the size limit).
+ */
+export async function cloudSave(project: Project, onProgress: (msg: string) => void = () => {}): Promise<string[]> {
   const c = need();
   const uid = await userId(c);
+  const done = uploadedSet(uid);
+  const failed: string[] = [];
   let i = 0;
   for (const asset of project.assets) {
     i++;
     const blob = media.blob(asset.id);
-    if (!blob) continue;
+    if (!blob || done.has(asset.id)) continue;
     onProgress(`${i}/${project.assets.length} · ${asset.name}`);
     const { error } = await c.storage.from(BUCKET).upload(`${uid}/${asset.id}`, blob, { contentType: asset.mime || undefined, upsert: false });
-    // "Duplicate" simply means this asset was uploaded on a previous save.
-    if (error && !/exist|duplicate/i.test(error.message)) throw new Error(`${asset.name}: ${error.message}`);
+    // "Duplicate" simply means this asset was uploaded before (perhaps from another device).
+    if (error && !/exist|duplicate/i.test(error.message)) failed.push(asset.name);
+    else done.add(asset.id);
   }
-  const { error } = await c.from('projects').upsert({ id: project.id, user_id: uid, name: project.name, data: project, updated_at: new Date().toISOString() });
+  localStorage.setItem(uploadedKey(uid), JSON.stringify([...done]));
+  const { error } = await c.from('projects').upsert({ id: project.id, user_id: uid, name: project.name, data: project, updated_at: new Date(project.updatedAt).toISOString() });
   if (error) throw new Error(error.message);
+  return failed;
 }
 
 export async function cloudList(): Promise<CloudProject[]> {
@@ -221,24 +246,30 @@ export async function cloudList(): Promise<CloudProject[]> {
   return data ?? [];
 }
 
-/** Fetch a project and any media files that are not already on this device. */
-export async function cloudLoad(id: string, onProgress: (msg: string) => void): Promise<Project> {
-  const c = need();
-  const uid = await userId(c);
-  const { data, error } = await c.from('projects').select('data').eq('id', id).single();
+/** The project document only; media is fetched when the project is opened. */
+export async function cloudFetch(id: string): Promise<Project> {
+  const { data, error } = await need().from('projects').select('data').eq('id', id).single();
   if (error) throw new Error(error.message);
-  const project = data.data as Project;
+  return data.data as Project;
+}
+
+/** Download media files of a project that are not on this device yet. Returns how many are still missing. */
+export async function downloadMissing(project: Project, onProgress: (msg: string) => void = () => {}): Promise<number> {
   const missing = await media.restore(project.assets);
+  const uid = await currentUserId();
+  if (!missing.length || !uid) return missing.length;
+  const c = need();
+  let left = missing.length;
   let i = 0;
   for (const assetId of missing) {
     i++;
-    const asset = project.assets.find((a) => a.id === assetId);
-    onProgress(`${i}/${missing.length} · ${asset?.name ?? ''}`);
+    onProgress(`${i}/${missing.length}`);
     const dl = await c.storage.from(BUCKET).download(`${uid}/${assetId}`);
-    if (dl.error) throw new Error(`${asset?.name}: ${dl.error.message}`);
+    if (dl.error) continue;
     await media.addBlob(assetId, dl.data);
+    left--;
   }
-  return project;
+  return left;
 }
 
 export async function cloudDelete(id: string) {

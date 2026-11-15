@@ -3,6 +3,7 @@ import { Cloud, Download, Home as HomeIcon, Languages, MessageSquareText, Redo2,
 import { useStore, type PanelTab } from './store';
 import { dbSet } from './lib/db';
 import { useT } from './lib/i18n';
+import { useSync } from './lib/sync';
 import { player } from './engine/player';
 import { EDIT_ICON, Library, TABS, importFiles } from './components/Library';
 import { Inspector } from './components/Inspector';
@@ -49,6 +50,7 @@ export function App() {
   const canRedo = useStore((s) => s.future.length > 0);
   const busy = useStore((s) => s.busy);
   const panelTab = useStore((s) => s.panelTab);
+  const syncStatus = useSync((s) => s.status);
   const [dialog, setDialog] = useState<DialogName>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [dropping, setDropping] = useState(false);
@@ -112,7 +114,7 @@ export function App() {
 
   const dialogs = (
     <>
-      {busy && <div className="toast">{busy === 'importing' ? t('importing') : busy === 'importFailed' ? t('importFailed') : busy}</div>}
+      {busy && <div className="toast">{busy === 'importing' ? t('importing') : busy === 'importFailed' ? t('importFailed') : busy === 'loading' ? t('loading') : busy}</div>}
       {dialog === 'export' && <ExportDialog onClose={() => setDialog(null)} />}
       {dialog === 'cloud' && <CloudDialog onClose={() => setDialog(null)} />}
       {dialog === 'feedback' && <FeedbackDialog onClose={() => setDialog(null)} />}
@@ -172,8 +174,9 @@ export function App() {
         <button className="icon-btn" onClick={() => setDialog('feedback')} title={t('feedback')} aria-label={t('feedback')}>
           <MessageSquareText size={18} />
         </button>
-        <button className="top-btn" onClick={() => setDialog('cloud')}>
-          <Cloud size={16} /> <span>{t('cloud')}</span>
+        <button className="top-btn" onClick={() => setDialog('cloud')} title={syncStatus === 'off' ? t('syncOff') : t(syncStatus === 'syncing' ? 'syncing' : syncStatus === 'error' ? 'syncError' : 'synced')}>
+          <Cloud size={16} className={syncStatus === 'syncing' ? 'pulse' : ''} /> <span>{t('cloud')}</span>
+          {syncStatus !== 'off' && <i className={'sync-dot ' + syncStatus} />}
         </button>
         <button className="top-btn primary" onClick={() => setDialog('export')}>
           <Download size={16} /> <span>{t('export')}</span>
