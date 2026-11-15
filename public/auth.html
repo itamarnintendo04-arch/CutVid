@@ -51,11 +51,16 @@
           text.className = 'err';
         }
         if (!targets[to]) {
-          // Opened without a destination (e.g. an old link): there is nothing to hand over to.
-          if (!failed) {
-            title.textContent = 'Open CutVid to continue';
-            text.textContent = 'Sign-in links only work from inside the CutVid app.';
-          }
+          // No explicit destination (e.g. a link that fell back to the site address):
+          // phones go to the app, computers to the desktop app.
+          var ua = navigator.userAgent;
+          var phone = /iPhone|iPad|iPod|Android/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+          to = phone ? 'app' : 'desktop';
+        }
+        // Nothing to hand over: someone opened this address directly.
+        if (!failed && !params.get('code') && !/access_token|token_hash/.test(location.search + location.hash)) {
+          title.textContent = 'Open CutVid to continue';
+          text.textContent = 'This page finishes sign-in for the CutVid app. Start signing in from inside the app.';
           return;
         }
         var url = targets[to] + tail;

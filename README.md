@@ -101,7 +101,7 @@ npm run cap:ios       # יוצר ios/     → npx cap open ios  (דורש Mac + 
 
 ### דף חזרה לאפליקציה
 
-כשגרסת הדפדפן מתארחת בכתובת ציבורית, הדף [`/auth.html`](public/auth.html) משמש גשר: אחרי התחברות עם Google או לחיצה על קישור במייל, הדפדפן מגיע לדף ממותג "Returning to CutVid" שמחזיר את התוצאה לאפליקציה (`?to=app` למובייל, `?to=desktop` למחשב) ומציג כפתור **Open CutVid** אם המעבר האוטומטי נחסם.
+כשגרסת הדפדפן מתארחת בכתובת ציבורית, הכתובת `/callback` (הקובץ [`public/auth.html`](public/auth.html)) משמשת גשר: אחרי התחברות עם Google או לחיצה על קישור במייל, הדפדפן מגיע לדף ממותג "Returning to CutVid" שמחזיר את התוצאה לאפליקציה (`?to=app` למובייל, `?to=desktop` למחשב) ומציג כפתור **Open CutVid** אם המעבר האוטומטי נחסם.
 
 1. מארחים את `dist/` (למשל ב‑Vercel) ומקבלים כתובת, נניח `https://cutvid.example.com`.
 2. ב‑GitHub: *Settings → Secrets and variables → Actions → Variables* מוסיפים `VITE_SITE_URL` עם הכתובת, ובונים מחדש.

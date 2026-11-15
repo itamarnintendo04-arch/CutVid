@@ -91,7 +91,7 @@ async function userId(c: SupabaseClient): Promise<string> {
 
 /**
  * Public address of the CutVid web app, without a trailing slash (e.g. https://cutvid.example.com).
- * When set, the apps sign in through its /auth.html bridge page, which shows a branded
+ * When set, the apps sign in through its /callback bridge page (public/auth.html), which shows a branded
  * "Returning to CutVid" screen and hands the result back to the app.
  */
 export const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) || 'https://cutvid.vercel.app').replace(/\/+$/, '');
@@ -100,8 +100,8 @@ export const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) |
 export function redirectUrl(): string {
   const native = Capacitor.isNativePlatform();
   const desktop = !!window.cutvidAuth;
-  if (native) return SITE_URL ? `${SITE_URL}/auth.html?to=app` : NATIVE_REDIRECT;
-  if (desktop) return SITE_URL ? `${SITE_URL}/auth.html?to=desktop` : DESKTOP_REDIRECT;
+  if (native) return SITE_URL ? `${SITE_URL}/callback?to=app` : NATIVE_REDIRECT;
+  if (desktop) return SITE_URL ? `${SITE_URL}/callback?to=desktop` : DESKTOP_REDIRECT;
   return location.origin + location.pathname;
 }
 
