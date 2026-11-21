@@ -370,3 +370,4 @@ h2.with-status { display: flex; align-items: center; gap: 10px; }
 .icon-choice small { font-size: 11px; color: var(--muted); }
 .icon-choice.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .icon-choice.active small { color: var(--text); }
+.icon-choice img { border-radius: 22%; }

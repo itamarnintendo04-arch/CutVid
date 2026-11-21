@@ -30,16 +30,72 @@ async function viaAnthropic(system: string, messages: Msg[]): Promise<string> {
   return res.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
 }
 
-async function viaOpenAiCompatible(system: string, messages: Msg[]): Promise<string> {
-  const base = (Deno.env.get('AI_BASE_URL') ?? 'https://generativelanguage.googleapis.com/v1beta/openai').replace(/\/+$/, '');
-  const model = Deno.env.get('AI_MODEL') ?? 'gemini-2.5-flash';
-  const res = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${Deno.env.get('AI_API_KEY')}` },
-    body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, ...messages] }),
-  });
+const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/openai';
+
+/** Accept the base URL in the shapes people paste it: with /chat/completions, without /openai, etc. */
+function normalizeBase(raw: string | undefined): string {
+  let base = (raw ?? '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '');
+  if (!base || /generativelanguage\.googleapis\.com/.test(base)) base = GEMINI;
+  return base;
+}
+
+/** "models/gemini-2.5-flash" (how Google lists them) -> "gemini-2.5-flash". */
+const normalizeModel = (m: string) => m.trim().replace(/^models\//, '');
+
+async function listModels(base: string, key: string): Promise<string[]> {
+  const res = await fetch(`${base}/models`, { headers: { authorization: `Bearer ${key}` } });
   const body = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(`AI provider error ${res.status}: ${body?.error?.message ?? body?.message ?? res.statusText}`);
+  const list: { id?: string }[] = Array.isArray(body?.data) ? body.data : [];
+  return list.map((m) => normalizeModel(String(m?.id ?? ''))).filter(Boolean);
+}
+
+/** Best stand-in when the configured model does not exist (renamed or retired): newest plain "flash" model. */
+function pickFallback(models: string[]): string | null {
+  const usable = models.filter((m) => /flash/.test(m) && !/image|tts|audio|live|embed|vision|thinking-exp/.test(m));
+  const score = (m: string) => {
+    const v = Number((m.match(/(\d+(?:\.\d+)?)/) ?? [])[1] ?? 0);
+    return v * 10 - (/lite/.test(m) ? 3 : 0) - (/preview|exp/.test(m) ? 1 : 0);
+  };
+  return usable.sort((a, b) => score(b) - score(a))[0] ?? null;
+}
+
+function providerError(status: number, body: any, fallback: string) {
+  // Google sometimes wraps the error in an array.
+  const err = Array.isArray(body) ? body[0]?.error : body?.error;
+  return `${status}: ${err?.message ?? body?.message ?? fallback}`;
+}
+
+async function viaOpenAiCompatible(system: string, messages: Msg[]): Promise<string> {
+  const key = (Deno.env.get('AI_API_KEY') ?? '').trim();
+  const base = normalizeBase(Deno.env.get('AI_BASE_URL'));
+  let model = normalizeModel(Deno.env.get('AI_MODEL') || 'gemini-2.5-flash');
+
+  const call = (m: string) =>
+    fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: m, messages: [{ role: 'system', content: system }, ...messages] }),
+    });
+
+  let res = await call(model);
+  let body = await res.json().catch(() => null);
+  if (res.status === 404) {
+    // Usually the model name: look at what this key can use and retry once with the closest match.
+    const models = await listModels(base, key).catch(() => [] as string[]);
+    const fallback = pickFallback(models);
+    console.log(`model ${model} not found at ${base}; ${models.length} models available; retrying with ${fallback}`);
+    if (!fallback) {
+      throw new Error(
+        models.length
+          ? `AI model "${model}" was not found. Set AI_MODEL to one of: ${models.slice(0, 8).join(', ')}`
+          : `AI provider 404 at ${base} — check AI_BASE_URL (or remove it to use Gemini) and AI_API_KEY`,
+      );
+    }
+    model = fallback;
+    res = await call(model);
+    body = await res.json().catch(() => null);
+  }
+  if (!res.ok) throw new Error(`AI provider error ${providerError(res.status, body, res.statusText)} (model ${model})`);
   const content = body?.choices?.[0]?.message?.content;
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) return content.map((p: { text?: string }) => p?.text ?? '').join('');

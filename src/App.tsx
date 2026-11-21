@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Cloud, Download, Home as HomeIcon, Languages, MessageSquareText, Redo2, Undo2 } from 'lucide-react';
+import { Download, Home as HomeIcon, Redo2, Undo2 } from 'lucide-react';
 import { useStore, type PanelTab } from './store';
 import { dbSet } from './lib/db';
 import { useT } from './lib/i18n';
-import { useSync } from './lib/sync';
 import { player } from './engine/player';
 import { EDIT_ICON, Library, TABS, importFiles } from './components/Library';
 import { Inspector } from './components/Inspector';
@@ -50,7 +49,6 @@ export function App() {
   const canRedo = useStore((s) => s.future.length > 0);
   const busy = useStore((s) => s.busy);
   const panelTab = useStore((s) => s.panelTab);
-  const syncStatus = useSync((s) => s.status);
   const [dialog, setDialog] = useState<DialogName>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [dropping, setDropping] = useState(false);
@@ -63,11 +61,14 @@ export function App() {
   // A password-reset link was opened, or a panel needs the user to sign in.
   useEffect(() => {
     const open = () => setDialog('cloud');
+    const feedback = () => setDialog('feedback');
     window.addEventListener('cutvid:recovery', open);
     window.addEventListener('cutvid:open-cloud', open);
+    window.addEventListener('cutvid:open-feedback', feedback);
     return () => {
       window.removeEventListener('cutvid:recovery', open);
       window.removeEventListener('cutvid:open-cloud', open);
+      window.removeEventListener('cutvid:open-feedback', feedback);
     };
   }, []);
 
@@ -167,16 +168,6 @@ export function App() {
         </button>
         <button className="icon-btn" disabled={!canRedo} onClick={useStore.getState().redo} title={`${t('redo')} (Ctrl+Shift+Z)`} aria-label={t('redo')}>
           <Redo2 size={18} />
-        </button>
-        <button className="icon-btn" onClick={() => useStore.getState().setLang(lang === 'he' ? 'en' : 'he')} title="עברית / English" aria-label="language">
-          <Languages size={18} />
-        </button>
-        <button className="icon-btn" onClick={() => setDialog('feedback')} title={t('feedback')} aria-label={t('feedback')}>
-          <MessageSquareText size={18} />
-        </button>
-        <button className="top-btn" onClick={() => setDialog('cloud')} title={syncStatus === 'off' ? t('syncOff') : t(syncStatus === 'syncing' ? 'syncing' : syncStatus === 'error' ? 'syncError' : 'synced')}>
-          <Cloud size={16} className={syncStatus === 'syncing' ? 'pulse' : ''} /> <span>{t('cloud')}</span>
-          {syncStatus !== 'off' && <i className={'sync-dot ' + syncStatus} />}
         </button>
         <button className="top-btn primary" onClick={() => setDialog('export')}>
           <Download size={16} /> <span>{t('export')}</span>

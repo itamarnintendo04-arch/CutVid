@@ -15,6 +15,9 @@ import { setSetting, useSettings } from '../lib/settings';
 import { configureBackgroundUpdates, notifyState, requestNotify, type NotifyState } from '../lib/notify';
 import { savesToGallery } from '../lib/save';
 import { APP_VERSION } from '../version';
+import { Cloud, MessageSquareText } from 'lucide-react';
+import { useSync } from '../lib/sync';
+import { supabase } from '../lib/supabase';
 
 // ---- shared -------------------------------------------------------------------------------
 
@@ -550,6 +553,8 @@ export function SettingsPanel() {
 
   return (
     <div className="panel-scroll">
+      <AccountSection />
+
       <Section title={t('notifications')}>
         {perm === 'prompt' && (
           <button className="primary" onClick={() => requestNotify().then(setPerm)}>
@@ -613,6 +618,9 @@ export function SettingsPanel() {
             <option value="he">עברית</option>
           </select>
         </label>
+        <button onClick={() => window.dispatchEvent(new Event('cutvid:open-feedback'))}>
+          <MessageSquareText size={15} /> {t('feedback')}
+        </button>
         <p className="muted small">CutVid · build {APP_VERSION}</p>
       </Section>
     </div>
@@ -652,6 +660,38 @@ function AppIconPicker() {
       </div>
       <p className="muted small">{t('appIconHint')}</p>
       {error && <p className="error small">{error}</p>}
+    </Section>
+  );
+}
+
+function AccountSection() {
+  const t = useT();
+  const sync = useSync();
+  const [email, setEmail] = useState<string | null>(null);
+  useEffect(() => {
+    const c = supabase();
+    if (!c) return;
+    c.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? null));
+    const { data } = c.auth.onAuthStateChange((_e, session) => setEmail(session?.user.email ?? null));
+    return () => data.subscription.unsubscribe();
+  }, []);
+  const status = sync.status === 'syncing' ? 'syncing' : sync.status === 'error' ? 'syncError' : 'synced';
+  return (
+    <Section title={t('account')}>
+      {email ? (
+        <>
+          <p className="small">
+            {t('signedInAs')}
+            <bdi>{email}</bdi>
+          </p>
+          <p className={'small ' + (sync.status === 'error' ? 'error' : 'ok')}>{t(status)}</p>
+        </>
+      ) : (
+        <p className="muted small">{t('syncOff')}</p>
+      )}
+      <button className={email ? '' : 'primary'} onClick={() => window.dispatchEvent(new Event('cutvid:open-cloud'))}>
+        <Cloud size={15} /> {email ? t('cloud') : t('signIn')}
+      </button>
     </Section>
   );
 }

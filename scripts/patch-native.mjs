@@ -123,6 +123,15 @@ if (existsSync(manifest)) {
     mkdirSync(dest, { recursive: true });
     for (const f of readdirSync(`assets/app-icons/android/${dir}`)) copyFileSync(`assets/app-icons/android/${dir}/${f}`, `${dest}/${f}`);
   }
+  // Android 8+ masks launcher icons into the device's shape only when they are adaptive icons.
+  mkdirSync('android/app/src/main/res/mipmap-anydpi-v26', { recursive: true });
+  for (const id of ALT_ICONS) {
+    const name = id.toLowerCase();
+    writeFileSync(
+      `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_${name}.xml`,
+      `<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@mipmap/ic_launcher_${name}_bg" />\n    <foreground android:drawable="@android:color/transparent" />\n</adaptive-icon>\n`,
+    );
+  }
   let xml = readFileSync(manifest, 'utf8');
   if (!xml.includes('.AppIconDefault')) {
     const launcher = /\s*<intent-filter>\s*<action android:name="android\.intent\.action\.MAIN" \/>\s*<category android:name="android\.intent\.category\.LAUNCHER" \/>\s*<\/intent-filter>/;

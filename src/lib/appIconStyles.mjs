@@ -27,30 +27,25 @@ const fill = (id, colors, angle = 1) =>
 const paint = (id, colors) => (colors.length === 1 ? colors[0] : `url(#${id})`);
 
 /**
- * SVG markup for one style.
- * fullBleed: the tile fills the whole square (iOS masks the corners itself);
- * otherwise a rounded tile with a margin (Android legacy icons, desktop, in-app thumbnails).
+ * SVG markup for one style. Every style uses exactly the geometry of the original logo
+ * (public/icon.svg / assets/logo.png): a full square background, a rounded tile inset by 56,
+ * and the play glyph at the same position, so all icons line up with the default one.
+ * fullBleed is kept for callers but no longer changes the layout.
  */
 export function iconSvg(style, fullBleed = false) {
+  void fullBleed;
   const s = style;
-  const tile = fullBleed ? { x: 0, y: 0, w: 512, r: 0 } : { x: 40, y: 40, w: 432, r: 104 };
-  // The play glyph scales with the tile so full-bleed icons are not tiny.
-  const k = tile.w / 400;
-  const ox = tile.x + (tile.w - 400) / 2;
-  const oy = tile.y + (tile.w - 400) / 2;
-  const T = (x, y) => `${(ox + (x - 56) * k).toFixed(1)},${(oy + (y - 56) * k).toFixed(1)}`;
   const glyph = (dx = 0, dy = 0) =>
-    `<g transform="translate(${dx} ${dy})"><path d="M${T(212, 168)} L${T(212, 344)} L${T(360, 256)} Z"/><rect x="${(ox + (140 - 56) * k).toFixed(1)}" y="${(oy + (168 - 56) * k).toFixed(1)}" width="${(34 * k).toFixed(1)}" height="${(176 * k).toFixed(1)}" rx="${(10 * k).toFixed(1)}"/></g>`;
+    `<g transform="translate(${dx} ${dy})"><path d="M212 168v176l148-88z"/><rect x="140" y="168" width="34" height="176" rx="10"/></g>`;
   const glowFilter = s.glow
-    ? `<filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
+    ? `<filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
     : '';
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">`,
     `<defs>${fill('t', s.tile)}${fill('g', s.glyph, 0.6)}${glowFilter}</defs>`,
-    fullBleed ? '' : `<rect width="512" height="512" fill="${s.bg}"/>`.replace(s.bg, 'none'),
-    `<rect x="${tile.x}" y="${tile.y}" width="${tile.w}" height="${tile.w}" rx="${tile.r}" fill="${paint('t', s.tile)}"${s.stroke ? ` stroke="${s.stroke}" stroke-width="${fullBleed ? 0 : 10}"` : ''}/>`,
-    s.stroke && fullBleed ? `<rect x="40" y="40" width="432" height="432" rx="96" fill="none" stroke="${s.stroke}" stroke-width="12"${s.glow ? ' filter="url(#glow)"' : ''}/>` : '',
-    s.shadow ? `<g fill="${s.shadow}">${glyph(14 * k, 14 * k)}</g>` : '',
+    `<rect width="512" height="512" fill="${s.bg}"/>`,
+    `<rect x="56" y="56" width="400" height="400" rx="96" fill="${paint('t', s.tile)}"${s.stroke ? ` stroke="${s.stroke}" stroke-width="10"${s.glow ? ' filter="url(#glow)"' : ''}` : ''}/>`,
+    s.shadow ? `<g fill="${s.shadow}">${glyph(10, 10)}</g>` : '',
     `<g fill="${paint('g', s.glyph)}"${s.glow ? ' filter="url(#glow)"' : ''}>${glyph()}</g>`,
     `</svg>`,
   ].join('');
