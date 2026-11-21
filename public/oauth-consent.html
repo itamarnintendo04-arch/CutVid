@@ -27,6 +27,8 @@
       .app img { width: 56px; height: 56px; border-radius: 14px; }
       .arrow { color: #8b90a0; font-size: 22px; }
       ul { text-align: start; background: #0b0c10; border: 1px solid #262a35; border-radius: 12px; padding: 12px 34px 12px 14px; margin: 0 0 16px; color: #c9ccd6; }
+      .verified { display: inline-flex; align-items: center; gap: 6px; background: rgba(29, 155, 240, .14); color: #7cc4ff; border: 1px solid rgba(29, 155, 240, .45); border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; margin: 0 0 12px; }
+      .tick { width: 20px; height: 20px; vertical-align: -3px; }
       .who { font-size: 14px; color: #8b90a0; margin-bottom: 14px; direction: ltr; }
       .err { color: #ff5c7a; min-height: 20px; font-size: 14px; }
       .actions { display: flex; flex-direction: column; gap: 8px; }
@@ -58,7 +60,8 @@
       <!-- Step 2: consent -->
       <section id="consent" hidden>
         <div class="app"><img src="/icon.svg" alt="" /><span class="arrow">⇄</span><img id="client-logo" alt="" hidden /><b id="client-initial" hidden></b></div>
-        <h1><span id="client-name">אפליקציה</span> מבקשת להתחבר עם CutVid</h1>
+        <h1><span id="client-name">אפליקציה</span><svg class="tick" id="tick" hidden viewBox="0 0 24 24" aria-label="מאומת"><circle cx="12" cy="12" r="11" fill="#1d9bf0"/><path d="M7 12.5l3.2 3.2L17.2 8.8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg> מבקשת להתחבר עם CutVid</h1>
+        <div id="official" class="verified" hidden><svg class="tick" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#1d9bf0"/><path d="M7 12.5l3.2 3.2L17.2 8.8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>אפליקציה רשמית של CutVid</div>
         <div class="who" id="who"></div>
         <p>האפליקציה תקבל:</p>
         <ul id="scopes"></ul>
@@ -89,6 +92,8 @@
         var $ = function (id) { return document.getElementById(id); };
         var params = new URLSearchParams(location.search);
         var authId = params.get('authorization_id');
+        // Apps made by the CutVid team get the blue verified badge.
+        var OFFICIAL = { '5a0c5e5b-0000-4000-8000-5ea0c0de0001': 'SpaceShip' };
         var SCOPES = { openid: 'זיהוי החשבון שלך', email: 'כתובת האימייל שלך', profile: 'השם ותמונת הפרופיל שלך' };
 
         function show(id) { ['loading', 'login', 'consent', 'error'].forEach(function (s) { $(s).hidden = s !== id; }); }
@@ -104,6 +109,10 @@
           if (d.redirect_url && !d.authorization_id) { location.replace(d.redirect_url); return; } // already approved before
           var name = (d.client && (d.client.client_name || d.client.name)) || 'אפליקציה';
           $('client-name').textContent = name;
+          var cid = d.client && (d.client.client_id || d.client.id);
+          var official = !!(cid && OFFICIAL[cid]);
+          $('tick').toggleAttribute('hidden', !official); $('official').hidden = !official;
+          document.querySelector('img.logo').hidden = true;
           var logo = d.client && (d.client.logo_uri || d.client.logo_url);
           if (logo) { $('client-logo').src = logo; $('client-logo').hidden = false; }
           $('who').textContent = 'מחובר בתור ' + (s.data.session.user.email || '');

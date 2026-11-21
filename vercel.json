@@ -2,11 +2,24 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "true",
-  "buildCommand": "rm -rf site-dist && mkdir site-dist && cp -r site/. site-dist/ && cp public/auth.html public/oauth-consent.html public/version.json public/icon.svg public/icon-512.png site-dist/",
+  "buildCommand": "rm -rf site-dist && mkdir site-dist && cp -r site/. site-dist/ && cp public/auth.html public/oauth-consent.html public/version.json public/icon.svg public/icon-512.png site-dist/ && cp -r public/apps site-dist/apps",
   "outputDirectory": "site-dist",
   "rewrites": [
-    { "source": "/callback", "destination": "/auth.html" },
-    { "source": "/oauth/consent", "destination": "/oauth-consent.html" },
-    { "source": "/callback/oauth/consent", "destination": "/oauth-consent.html" }
+    {
+      "source": "/callback",
+      "destination": "/auth.html"
+    },
+    {
+      "source": "/oauth/consent",
+      "destination": "/oauth-consent.html"
+    },
+    {
+      "source": "/callback/oauth/consent",
+      "destination": "/oauth-consent.html"
+    },
+    {
+      "source": "/apps/spaceship",
+      "destination": "/apps/spaceship.html"
+    }
   ]
 }
