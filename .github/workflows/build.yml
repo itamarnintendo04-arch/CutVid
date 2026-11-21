@@ -1,7 +1,8 @@
 name: Build apps
 
-# Produces installable files for every platform as workflow artifacts.
-# Each run also publishes a release page with direct download links (Releases tab).
+# Builds every platform and attaches the files straight to a release page (Releases tab).
+# Files go to the release rather than to workflow artifacts: release files do not count against
+# the Actions storage quota, which large Electron builds used to fill up.
 on:
   push:
     branches: [main, 'claude/**']
@@ -14,16 +15,40 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 env:
   # Optional: bake the Supabase project into the apps (Settings → Secrets and variables → Actions).
   VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
   VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-  # Optional: public URL of the hosted web app; enables the /auth.html return-to-app page (Settings → Variables).
+  # Optional: public URL of the hosted web app; enables the /callback return-to-app page (Settings → Variables).
   VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
+  TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
 
 jobs:
+  # Creates the release first (as a prerelease, so the website's "latest" links keep pointing at
+  # the previous complete build until this one is finished).
+  prepare:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('CutVid build {0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          body: |
+            Direct downloads:
+            - **iPhone / iPad** – `CutVid-ios-unsigned.ipa` (install with Sideloadly or AltStore)
+            - **Android** – `CutVid-android.apk`
+            - **Windows** – `CutVid-setup.exe` or `CutVid-portable.exe`
+            - **macOS** – `CutVid-mac-arm64.dmg` (Apple Silicon) or `CutVid-mac-x64.dmg` (Intel)
+
   web:
-    name: Web / PWA
+    name: Web build check
     runs-on: ubuntu-latest
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
@@ -33,11 +58,10 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-artifact@v4
-        with: { name: CutVid-web, path: dist, if-no-files-found: error }
 
   android:
     name: Android (APK)
+    needs: prepare
     runs-on: ubuntu-latest
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
@@ -59,11 +83,15 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk CutVid-android.apk
-      - uses: actions/upload-artifact@v4
-        with: { name: CutVid-android, path: CutVid-android.apk, if-no-files-found: error }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          files: CutVid-android.apk
+          fail_on_unmatched_files: true
 
   windows:
     name: Windows (EXE)
+    needs: prepare
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,11 +99,15 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run dist:win
-      - uses: actions/upload-artifact@v4
-        with: { name: CutVid-windows, path: release/*.exe, if-no-files-found: error }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          files: release/*.exe
+          fail_on_unmatched_files: true
 
   mac:
     name: macOS (DMG)
+    needs: prepare
     runs-on: macos-latest
     env:
       # Unsigned build. Add signing certificates as secrets to notarise for distribution.
@@ -86,11 +118,15 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run dist:mac
-      - uses: actions/upload-artifact@v4
-        with: { name: CutVid-mac, path: release/*.dmg, if-no-files-found: error }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          files: release/*.dmg
+          fail_on_unmatched_files: true
 
   ios:
     name: iOS (unsigned IPA)
+    needs: prepare
     runs-on: macos-latest
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
@@ -117,44 +153,20 @@ jobs:
           mkdir Payload
           cp -R ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
           zip -qr CutVid-ios-unsigned.ipa Payload
-      - uses: actions/upload-artifact@v4
-        with: { name: CutVid-ios, path: CutVid-ios-unsigned.ipa, if-no-files-found: error }
-
-  release:
-    name: Publish downloads
-    # Every build gets its own release page with direct download links, even if one platform failed.
-    if: ${{ !cancelled() }}
-    needs: [android, windows, mac, ios]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with: { name: CutVid-android, path: artifacts }
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with: { name: CutVid-ios, path: artifacts }
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with: { name: CutVid-windows, path: artifacts }
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with: { name: CutVid-mac, path: artifacts }
-      - run: ls -la artifacts
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('CutVid build {0}', github.run_number) }}
-          target_commitish: ${{ github.sha }}
-          # Not a prerelease: the website links to releases/latest/download/<file>.
+          tag_name: ${{ env.TAG }}
+          files: CutVid-ios-unsigned.ipa
+          fail_on_unmatched_files: true
+
+  # Once every platform succeeded, the release becomes the one the website's download links use.
+  publish:
+    name: Publish downloads
+    needs: [android, windows, mac, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
           prerelease: false
           make_latest: true
-          fail_on_unmatched_files: true
-          files: artifacts/*
-          body: |
-            Direct downloads:
-            - **iPhone / iPad** – `CutVid-ios-unsigned.ipa` (install with Sideloadly or AltStore)
-            - **Android** – `CutVid-android.apk`
-            - **Windows** – `CutVid-setup.exe` or `CutVid-portable.exe`
-            - **macOS** – `CutVid-mac-arm64.dmg` (Apple Silicon) or `CutVid-mac-x64.dmg` (Intel)
