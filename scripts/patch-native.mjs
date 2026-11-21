@@ -1,6 +1,10 @@
 // Registers the com.cutvid.app:// URL scheme in the generated native projects so that
 // Google sign-in and password-reset links can return to the app. Safe to run repeatedly.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { ICON_STYLES } from '../src/lib/appIconStyles.mjs';
+
+// Alternate app icons the user can pick in Settings (rendered by scripts/render-app-icons.mjs).
+const ALT_ICONS = ICON_STYLES.filter((s) => s.id !== 'Default').map((s) => s.id);
 
 const SCHEME = 'com.cutvid.app';
 
@@ -106,5 +110,67 @@ if (existsSync(delegate)) {
     swift = swift.replace(launch, '$1        BackgroundRunnerPlugin.registerBackgroundTask()\n        BackgroundRunnerPlugin.handleApplicationDidFinishLaunching(launchOptions: launchOptions)\n');
     writeFileSync(delegate, swift);
     console.log('ios: background runner wired into AppDelegate');
+  }
+}
+
+// ---- alternate app icons -------------------------------------------------------------------
+
+// Android: one <activity-alias> per icon. The launcher entry moves from MainActivity to the
+// enabled default alias; @capawesome/capacitor-app-icon toggles which alias is enabled.
+if (existsSync(manifest)) {
+  for (const dir of readdirSync('assets/app-icons/android')) {
+    const dest = `android/app/src/main/res/${dir}`;
+    mkdirSync(dest, { recursive: true });
+    for (const f of readdirSync(`assets/app-icons/android/${dir}`)) copyFileSync(`assets/app-icons/android/${dir}/${f}`, `${dest}/${f}`);
+  }
+  let xml = readFileSync(manifest, 'utf8');
+  if (!xml.includes('.AppIconDefault')) {
+    const launcher = /\s*<intent-filter>\s*<action android:name="android\.intent\.action\.MAIN" \/>\s*<category android:name="android\.intent\.category\.LAUNCHER" \/>\s*<\/intent-filter>/;
+    if (!launcher.test(xml)) throw new Error('AndroidManifest.xml: launcher intent-filter not found');
+    xml = xml.replace(launcher, '');
+    const alias = (name, enabled, icon, round) => `
+        <activity-alias
+            android:name=".${name}"
+            android:enabled="${enabled}"
+            android:exported="true"
+            android:icon="${icon}"
+            android:roundIcon="${round}"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>`;
+    const aliases =
+      alias('AppIconDefault', true, '@mipmap/ic_launcher', '@mipmap/ic_launcher_round') +
+      ALT_ICONS.map((id) => alias(id, false, `@mipmap/ic_launcher_${id.toLowerCase()}`, `@mipmap/ic_launcher_${id.toLowerCase()}`)).join('');
+    const end = xml.indexOf('</activity>');
+    if (end < 0) throw new Error('AndroidManifest.xml: </activity> not found');
+    xml = xml.slice(0, end + '</activity>'.length) + aliases + xml.slice(end + '</activity>'.length);
+    writeFileSync(manifest, xml);
+    console.log(`android: ${ALT_ICONS.length} alternate icons declared`);
+  }
+}
+
+// iOS: one app icon set per icon, registered as alternate icons in the build settings.
+const catalog = 'ios/App/App/Assets.xcassets';
+const pbx = 'ios/App/App.xcodeproj/project.pbxproj';
+if (existsSync(catalog) && existsSync(pbx)) {
+  for (const id of ALT_ICONS) {
+    const dir = `${catalog}/${id}.appiconset`;
+    mkdirSync(dir, { recursive: true });
+    copyFileSync(`assets/app-icons/ios/${id}.png`, `${dir}/icon.png`);
+    writeFileSync(
+      `${dir}/Contents.json`,
+      JSON.stringify({ images: [{ filename: 'icon.png', idiom: 'universal', platform: 'ios', size: '1024x1024' }], info: { author: 'xcode', version: 1 } }, null, 2),
+    );
+  }
+  let proj = readFileSync(pbx, 'utf8');
+  if (!proj.includes('ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES')) {
+    const anchor = /(\t+)ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n/g;
+    if (!anchor.test(proj)) throw new Error('project.pbxproj: ASSETCATALOG_COMPILER_APPICON_NAME not found');
+    proj = proj.replace(anchor, (line, tabs) => `${line}${tabs}ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "${ALT_ICONS.join(' ')}";\n${tabs}ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;\n`);
+    writeFileSync(pbx, proj);
+    console.log(`ios: ${ALT_ICONS.length} alternate icons declared`);
   }
 }

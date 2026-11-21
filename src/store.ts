@@ -86,6 +86,15 @@ export function freeTrack(p: Draft<Project>, kind: TrackKind, start: number, end
   return (free ?? addTrackTo(p, kind)).id;
 }
 
+/** A video layer above every clip that overlaps [start, end), creating one at the top if needed. */
+export function overlayTrack(p: Draft<Project>, start: number, end: number): string {
+  const video = p.tracks.map((t, i) => ({ t, i })).filter((x) => x.t.kind === 'video');
+  const busy = (id: string) => p.clips.some((c) => c.trackId === id && c.start < end - 1e-6 && clipEnd(c) > start + 1e-6);
+  const topBusy = Math.min(...video.filter((x) => busy(x.t.id)).map((x) => x.i), Infinity);
+  const free = video.filter((x) => x.i < topBusy && !x.t.locked).pop();
+  return (free?.t ?? addTrackTo(p, 'video')).id;
+}
+
 interface State {
   project: Project;
   past: Project[];
@@ -115,7 +124,8 @@ interface State {
 
   addAsset: (a: MediaAsset) => void;
   removeAsset: (id: string) => void;
-  addClipFromAsset: (assetId: string) => void;
+  /** overlay: place on a layer above everything at the playhead and keep the playhead where it is. */
+  addClipFromAsset: (assetId: string, opts?: { overlay?: boolean }) => void;
   addText: (content: string) => void;
   addShape: (shape: Partial<ShapeStyle> & Pick<ShapeStyle, 'kind'>, extra?: Partial<Clip>) => void;
   setEffect: (id: string, type: EffectType, amount: number, record?: boolean) => void;
@@ -189,20 +199,22 @@ export const useStore = create<State>((set, get) => ({
       p.clips = p.clips.filter((c) => c.assetId !== id);
     }),
 
-  addClipFromAsset: (assetId) => {
+  addClipFromAsset: (assetId, opts) => {
     const { project, time } = get();
     const asset = project.assets.find((a) => a.id === assetId);
     if (!asset) return;
+    const overlay = !!opts?.overlay && asset.kind !== 'audio';
     const duration = asset.kind === 'image' ? 5 : Math.max(0.1, asset.duration);
     let id = '';
     get().mutate((p) => {
       const kind: TrackKind = asset.kind === 'audio' ? 'audio' : 'video';
-      const clip = baseClip({ type: asset.kind, assetId, name: asset.name, trackId: freeTrack(p, kind, time, time + duration), start: time, duration });
+      const trackId = overlay ? overlayTrack(p, time, time + duration) : freeTrack(p, kind, time, time + duration);
+      const clip = baseClip({ type: asset.kind, assetId, name: asset.name, trackId, start: time, duration });
       id = clip.id;
       p.clips.push(clip);
     });
-    // Advance the playhead so repeated adds build a sequence instead of a stack.
-    set({ selection: [id], time: time + duration });
+    // Advance the playhead so repeated adds build a sequence instead of a stack (not for overlays).
+    set({ selection: [id], time: overlay ? time : time + duration });
   },
 
   addText: (content) => {

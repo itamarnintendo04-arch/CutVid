@@ -1,29 +1,33 @@
-import { useRef } from 'react';
 import { AlertTriangle, Blend, Diamond, Settings, Film, Image as ImageIcon, Layers2, Music, Plus, Shapes, SlidersHorizontal, Sparkles, Trash2, Type, Upload, Wand2, Zap } from 'lucide-react';
 import { useStore, type PanelTab } from '../store';
 import { media } from '../engine/media';
 import { formatTime, useT, type TKey } from '../lib/i18n';
-import type { TextStyle } from '../types';
+import type { MediaAsset, TextStyle } from '../types';
+import { ImportButtons } from './ImportButtons';
 import { DEFAULT_TEXT } from '../types';
 import { AiPanel } from './AiPanel';
 import { EffectsPanel, ElementsPanel, FiltersPanel, KeyframesPanel, OverlaysPanel, SettingsPanel, TransitionsPanel } from './Panels';
 
-export async function importFiles(files: FileList | File[]) {
+export async function importFiles(files: FileList | File[]): Promise<MediaAsset[]> {
   const st = useStore.getState();
   const list = Array.from(files);
-  if (!list.length) return;
+  const added: MediaAsset[] = [];
+  if (!list.length) return added;
   st.setBusy('importing');
   let failed = 0;
   try {
     for (const f of list) {
       const asset = await media.importFile(f);
-      if (asset) useStore.getState().addAsset(asset);
-      else failed++;
+      if (asset) {
+        useStore.getState().addAsset(asset);
+        added.push(asset);
+      } else failed++;
     }
   } finally {
     useStore.getState().setBusy(failed ? 'importFailed' : null);
     if (failed) setTimeout(() => useStore.getState().busy === 'importFailed' && useStore.getState().setBusy(null), 4000);
   }
+  return added;
 }
 
 export const TABS: { id: PanelTab; label: TKey; icon: typeof Film }[] = [
@@ -80,29 +84,9 @@ function MediaPanel() {
   const addClipFromAsset = useStore((s) => s.addClipFromAsset);
   const removeAsset = useStore((s) => s.removeAsset);
   const fps = useStore((s) => s.project.fps);
-  const gallery = useRef<HTMLInputElement>(null);
-  const files = useRef<HTMLInputElement>(null);
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) importFiles(e.target.files);
-    e.target.value = '';
-  };
   return (
     <div className="panel-scroll">
-      {/* Two inputs: image/video opens the photo gallery on phones; the second one browses files (audio too). */}
-      <input ref={gallery} type="file" multiple accept="video/*,image/*" hidden onChange={onPick} />
-      <input ref={files} type="file" multiple accept="video/*,audio/*,image/*,.mp4,.mov,.m4v,.webm,.mkv,.mp3,.wav,.m4a,.aac,.ogg,.flac" hidden onChange={onPick} />
-      <div className="import-row">
-        <button className="import-btn" onClick={() => gallery.current?.click()}>
-          <ImageIcon size={18} />
-          <b>{t('fromGallery')}</b>
-          <small>{t('galleryHint')}</small>
-        </button>
-        <button className="import-btn" onClick={() => files.current?.click()}>
-          <Upload size={18} />
-          <b>{t('fromFiles')}</b>
-          <small>{t('filesHint')}</small>
-        </button>
-      </div>
+      <ImportButtons onFiles={(f) => void importFiles(f)} />
       {!assets.length && <p className="muted center">{t('emptyMedia')}</p>}
       <div className="asset-grid">
         {assets.map((a) => {

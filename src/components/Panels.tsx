@@ -8,6 +8,9 @@ import { EASINGS, easeFn, findKeyframe, propAt } from '../engine/keyframes';
 import { canvasFiltersSupported, drawShape } from '../engine/render';
 import { deletePreset, savePreset, usePresets, type PresetData, type PresetKind } from '../lib/presets';
 import { Section, Slider, Toggle } from './ui';
+import { ImportButtons } from './ImportButtons';
+import { importFiles } from './Library';
+import { ICON_STYLES, canChangeAppIcon, currentAppIcon, setAppIcon } from '../lib/appIcon';
 import { setSetting, useSettings } from '../lib/settings';
 import { configureBackgroundUpdates, notifyState, requestNotify, type NotifyState } from '../lib/notify';
 import { savesToGallery } from '../lib/save';
@@ -162,10 +165,40 @@ const OVERLAYS: { key: TKey; shape: Partial<ShapeStyle> & Pick<ShapeStyle, 'kind
   { key: 'ovSpotlight', shape: { kind: 'vignette', fill: 'rgba(0,0,0,1)' }, blend: 'multiply' },
 ];
 
+const QUICK_BLENDS: { mode: BlendMode; key: TKey }[] = [
+  { mode: 'source-over', key: 'blendNormal' },
+  { mode: 'screen', key: 'blendScreen' },
+  { mode: 'multiply', key: 'blendMultiply' },
+  { mode: 'overlay', key: 'blendOverlay' },
+  { mode: 'lighten', key: 'blendLighten' },
+];
+
 export function OverlaysPanel() {
   const t = useT();
+  const clip = useStore(selectedClip);
+  const updateClip = useStore((s) => s.updateClip);
+  const addOwn = async (files: FileList) => {
+    const assets = await importFiles(files);
+    for (const a of assets) if (a.kind !== 'audio') useStore.getState().addClipFromAsset(a.id, { overlay: true });
+  };
   return (
     <div className="panel-scroll">
+      <h4>{t('ownOverlay')}</h4>
+      <ImportButtons visualOnly onFiles={addOwn} />
+      <p className="muted small pad-b">{t('ownOverlayHint')}</p>
+      {clip && clip.type !== 'audio' && (
+        <>
+          <h4>{t('blend')}</h4>
+          <div className="chips pad-b">
+            {QUICK_BLENDS.map((b) => (
+              <button key={b.mode} className={'chip' + (clip.blend === b.mode ? ' active' : '')} onClick={() => updateClip(clip.id, (c) => void (c.blend = b.mode))}>
+                {t(b.key)}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <h4>{t('readyOverlays')}</h4>
       <p className="muted small pad-b">{t('overlayHint')}</p>
       <div className="tile-grid two">
         {OVERLAYS.map((o) => {
@@ -570,6 +603,8 @@ export function SettingsPanel() {
         </label>
       </Section>
 
+      {canChangeAppIcon() && <AppIconPicker />}
+
       <Section title={t('general')}>
         <label className="field">
           <span className="field-label">{t('language')}</span>
@@ -581,5 +616,42 @@ export function SettingsPanel() {
         <p className="muted small">CutVid · build {APP_VERSION}</p>
       </Section>
     </div>
+  );
+}
+
+function AppIconPicker() {
+  const t = useT();
+  const [current, setCurrent] = useState('Default');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    currentAppIcon().then(setCurrent);
+  }, []);
+  const pick = async (id: string) => {
+    if (id === current || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await setAppIcon(id);
+      setCurrent(id);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Section title={t('appIcon')}>
+      <div className="icon-grid">
+        {ICON_STYLES.map((s) => (
+          <button key={s.id} className={'icon-choice' + (current === s.id ? ' active' : '')} disabled={busy} onClick={() => pick(s.id)} aria-pressed={current === s.id}>
+            <img src={`./app-icons/${s.id}.png`} alt="" width={56} height={56} draggable={false} />
+            <small>{s.label}</small>
+          </button>
+        ))}
+      </div>
+      <p className="muted small">{t('appIconHint')}</p>
+      {error && <p className="error small">{error}</p>}
+    </Section>
   );
 }

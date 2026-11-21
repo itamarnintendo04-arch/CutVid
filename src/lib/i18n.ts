@@ -272,6 +272,16 @@ const he = {
   language: 'שפה',
   savedToDownloads: 'נשמר בהורדות',
   saveAgain: 'שמור שוב',
+  ownOverlay: 'אוברליי משלך',
+  ownOverlayHint: 'תמונה או סרטון שתבחרו יתווספו כשכבה מעל הכול בזמן הנוכחי. אפשר לשנות שקיפות וגודל ב"עריכה".',
+  readyOverlays: 'אוברליי מוכנים',
+  blendNormal: 'רגיל',
+  blendScreen: 'הבהרה (Screen)',
+  blendMultiply: 'הכפלה (Multiply)',
+  blendOverlay: 'Overlay',
+  blendLighten: 'Lighten',
+  appIcon: 'אייקון האפליקציה',
+  appIconHint: 'באייפון תופיע הודעת אישור של המערכת. באנדרואיד האפליקציה תיפתח מחדש עם האייקון החדש. במחשב משתנה האייקון של החלון והמעגן.',
   sug4: 'סדר את הקליפים שלי ברצף עם מעברי fade',
 };
 
@@ -547,6 +557,16 @@ const en: Record<Key, string> = {
   language: 'Language',
   savedToDownloads: 'Saved to Downloads',
   saveAgain: 'Save again',
+  ownOverlay: 'Your own overlay',
+  ownOverlayHint: 'A picture or video you pick is added as a layer above everything at the playhead. Change its opacity and size under Edit.',
+  readyOverlays: 'Ready-made overlays',
+  blendNormal: 'Normal',
+  blendScreen: 'Screen',
+  blendMultiply: 'Multiply',
+  blendOverlay: 'Overlay',
+  blendLighten: 'Lighten',
+  appIcon: 'App icon',
+  appIconHint: 'On iPhone the system shows a confirmation. On Android the app restarts with the new icon. On computers the window and Dock icon change.',
   sug4: 'Arrange my clips in sequence with fade transitions',
 };
 

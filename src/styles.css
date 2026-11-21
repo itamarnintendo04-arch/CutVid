@@ -361,3 +361,12 @@ h2.with-status { display: flex; align-items: center; gap: 10px; }
 .sync-dot.syncing { background: #ffd84a; }
 .pulse { animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.35; } }
+
+/* ---- import / app icon ---- */
+.import-row.single { grid-template-columns: 1fr; }
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.icon-choice { flex-direction: column; gap: 4px; padding: 8px 4px 6px; background: #0e1015; }
+.icon-choice img { width: 52px; height: 52px; display: block; }
+.icon-choice small { font-size: 11px; color: var(--muted); }
+.icon-choice.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.icon-choice.active small { color: var(--text); }

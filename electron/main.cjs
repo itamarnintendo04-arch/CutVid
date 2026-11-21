@@ -1,6 +1,32 @@
-const { app, BrowserWindow, shell, Menu, ipcMain, net } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, net, nativeImage } = require('electron');
+const fs = require('fs');
 const path = require('path');
 const http = require('http');
+
+// ---- app icon chosen in Settings ----
+const ICON_IDS = ['Default', 'Midnight', 'Sunset', 'Ocean', 'Mint', 'Candy', 'Fire', 'Gold', 'Light', 'Mono', 'Neon', 'Retro'];
+const iconPrefFile = () => path.join(app.getPath('userData'), 'app-icon.json');
+function savedIcon() {
+  try {
+    const id = JSON.parse(fs.readFileSync(iconPrefFile(), 'utf8')).id;
+    return ICON_IDS.includes(id) ? id : 'Default';
+  } catch {
+    return 'Default';
+  }
+}
+function applyIcon(id) {
+  const img = nativeImage.createFromPath(path.join(__dirname, '..', 'dist', 'app-icons', `${id}.png`));
+  if (img.isEmpty()) return;
+  for (const w of BrowserWindow.getAllWindows()) w.setIcon(img);
+  if (process.platform === 'darwin' && app.dock) app.dock.setIcon(img);
+}
+ipcMain.handle('cutvid-app-icon:get', () => savedIcon());
+ipcMain.handle('cutvid-app-icon:set', (event, id) => {
+  if (!event.senderFrame || !event.senderFrame.url.startsWith('file://')) throw new Error('Forbidden');
+  if (!ICON_IDS.includes(id)) throw new Error('Unknown icon');
+  fs.writeFileSync(iconPrefFile(), JSON.stringify({ id }));
+  applyIcon(id);
+});
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -14,6 +40,7 @@ function createWindow() {
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.cjs') },
   });
   win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  win.once('ready-to-show', () => applyIcon(savedIcon()));
   // External links (e.g. Supabase dashboard) open in the system browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/.test(url)) shell.openExternal(url);

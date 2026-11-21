@@ -1,5 +1,5 @@
 import type { Draft } from 'immer';
-import { addTrackTo, baseClip, freeTrack, useStore } from '../store';
+import { baseClip, freeTrack, overlayTrack, useStore } from '../store';
 import type { AnimProp, BlendMode, Clip, Easing, EffectType, Keyframe, Project, ShapeKind } from '../types';
 import { ANIMATION_TYPES, ANIM_PROPS, DEFAULT_TEXT, EFFECT_TYPES, clipEnd, projectDuration } from '../types';
 import { EASINGS } from '../engine/keyframes';
@@ -108,13 +108,7 @@ const hex6 = (v: unknown): string | undefined => {
 };
 
 /** New visual clips go above everything they overlap in time, so reply order is layer order. */
-function trackAbove(p: Draft<Project>, start: number, end: number): string {
-  const video = p.tracks.map((t, i) => ({ t, i })).filter((x) => x.t.kind === 'video');
-  const busy = (id: string) => p.clips.some((c) => c.trackId === id && c.start < end - 1e-6 && clipEnd(c) > start + 1e-6);
-  const topBusy = Math.min(...video.filter((x) => busy(x.t.id)).map((x) => x.i), Infinity);
-  const free = video.filter((x) => x.i < topBusy && !x.t.locked).pop();
-  return (free?.t ?? addTrackTo(p, 'video')).id;
-}
+const trackAbove = overlayTrack;
 
 /** Fields shared by every op that creates or updates a clip. Unknown or invalid values are ignored. */
 function applyFields(c: Draft<Clip>, o: any) {
