@@ -9,10 +9,16 @@ on:
     # Docs and Supabase-only changes do not need new app builds (macOS minutes are expensive).
     paths-ignore: ['supabase/**', '**.md', 'vercel.json', 'site/**']
     tags: ['v*']
+  # Actions → Build apps → Run workflow: enter a version (e.g. 1.0.0) to publish an official release "CutVid v1.0.0".
   workflow_dispatch:
+    inputs:
+      version:
+        description: Release version, e.g. 1.0.0 (leave empty for a normal numbered build)
+        required: false
+        default: ''
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 permissions:
@@ -24,7 +30,8 @@ env:
   VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
   # Optional: public URL of the hosted web app; enables the /callback return-to-app page (Settings → Variables).
   VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
-  TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
+  TAG: ${{ inputs.version != '' && inputs.version != null && format('v{0}', inputs.version) || startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
+  RELEASE_NAME: ${{ inputs.version != '' && inputs.version != null && format('CutVid v{0}', inputs.version) || startsWith(github.ref, 'refs/tags/v') && format('CutVid {0}', github.ref_name) || format('CutVid build {0}', github.run_number) }}
 
 jobs:
   # Creates the release first (as a prerelease, so the website's "latest" links keep pointing at
@@ -36,7 +43,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('CutVid build {0}', github.run_number) }}
+          name: ${{ env.RELEASE_NAME }}
           target_commitish: ${{ github.sha }}
           prerelease: true
           make_latest: false
