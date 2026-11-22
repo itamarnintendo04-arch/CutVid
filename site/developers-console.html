@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="stylesheet" href="/dev.css" />
+    <title>Developer console</title>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <a class="brand" href="/"><img src="/icon.svg" width="30" height="30" alt="" />CutVid</a>
+        <nav>
+          <a href="/developers" class="opt">Developers</a>
+          <a href="/developers/console" aria-current="page">Console</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <h1>Developer console</h1>
+      <p class="lead">Create the keys for your approved apps. Sign in with the email you applied with.</p>
+      <div id="root"></div>
+    </main>
+
+    <footer><div class="wrap">CutVid · developer program</div></footer>
+
+    <script type="module">
+      import { api, supabase, $, el, setStatus, signInBox } from '/dev.js';
+      const root = $('#root');
+      const ISSUER = 'https://btrwboxwbinqewgvlcal.supabase.co/auth/v1';
+
+      signInBox(root, 'Use the CutVid account with the email address from your application.', load);
+
+      async function load() {
+        root.replaceChildren(el('p', { class: 'muted' }, 'Loading your apps…'));
+        let res;
+        try {
+          res = await api('mine');
+        } catch (err) {
+          root.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'err' }, err.message), signOutButton()));
+          return;
+        }
+        const head = el('div', { class: 'row', style: 'margin-bottom:16px' }, el('span', { class: 'muted' }, 'Signed in as ', el('bdi', {}, res.email)), el('span', { style: 'flex:1' }), signOutButton());
+        if (!res.apps.length) {
+          root.replaceChildren(head, el('div', { class: 'card' }, el('p', { style: 'margin-top:0' }, 'There are no applications for this email address.'), el('a', { class: 'btn', href: '/developers' }, 'Apply for OAuth access')));
+          return;
+        }
+        root.replaceChildren(head, ...res.apps.map(appCard));
+      }
+
+      function signOutButton() {
+        return el('button', { class: 'btn ghost', onclick: async () => { await supabase.auth.signOut(); location.reload(); } }, 'Sign out');
+      }
+
+      function appCard(app) {
+        const card = el('div', { class: 'card' });
+        const label = { pending: 'Waiting for review', approved: 'Approved', rejected: 'Not approved' }[app.status];
+        card.append(
+          el('div', { class: 'app-head' }, el('h2', {}, app.name), el('span', { class: 'badge ' + app.status }, label)),
+          el('p', { class: 'mono', style: 'margin:0 0 12px' }, app.redirect_uris.join('\n')),
+        );
+        if (app.status === 'pending') card.append(el('p', { class: 'muted', style: 'margin:0' }, 'We will email you as soon as it is reviewed.'));
+        if (app.status === 'rejected') card.append(el('p', { class: 'muted', style: 'margin:0' }, 'This request was not approved. You are welcome to apply again with more details.'));
+        if (app.status === 'approved') {
+          const status = el('p', { class: 'status', role: 'status' });
+          const out = el('div');
+          const btn = el('button', { class: 'btn' }, app.oauth_client_id ? 'Create a new secret' : 'Create keys');
+          if (app.oauth_client_id) out.append(keyBox(app.oauth_client_id, null));
+          btn.addEventListener('click', async () => {
+            if (app.oauth_client_id && !confirm('The current secret stops working immediately. Continue?')) return;
+            btn.disabled = true;
+            setStatus(status, 'Creating…', 'muted');
+            try {
+              const k = await api('secret', { id: app.id });
+              app.oauth_client_id = k.client_id;
+              out.replaceChildren(keyBox(k.client_id, k.client_secret));
+              btn.textContent = 'Create a new secret';
+              setStatus(status, '');
+            } catch (err) {
+              setStatus(status, err.message, 'err');
+            } finally {
+              btn.disabled = false;
+            }
+          });
+          card.append(btn, status, out);
+        }
+        return card;
+      }
+
+      function keyBox(id, secret) {
+        return el(
+          'div',
+          { class: 'keys' },
+          el('div', {}, el('small', {}, 'Client ID'), el('code', {}, id)),
+          secret
+            ? el('div', {}, el('small', {}, 'Client Secret — shown only now. Copy it to a safe place.'), el('code', {}, secret))
+            : el('small', {}, 'The secret is only shown when it is created. Lost it? Create a new one.'),
+          el('div', {}, el('small', {}, 'Issuer (OpenID discovery at /.well-known/openid-configuration)'), el('code', {}, ISSUER)),
+        );
+      }
+    </script>
+  </body>
+</html>

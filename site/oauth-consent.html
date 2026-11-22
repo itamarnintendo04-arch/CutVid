@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="stylesheet" href="/dev.css" />
+    <title>Sign in with CutVid</title>
+  </head>
+  <body>
+    <header>
+      <div class="wrap"><a class="brand" href="/"><img src="/icon.svg" width="30" height="30" alt="" />CutVid</a></div>
+    </header>
+    <main class="wrap" style="max-width: 520px">
+      <div id="root"></div>
+    </main>
+    <script type="module">
+      // Consent screen for "Sign in with CutVid": Supabase Auth sends people here with ?authorization_id=…
+      import { supabase, $, el, setStatus, signInBox } from '/dev.js';
+      const root = $('#root');
+      const id = new URLSearchParams(location.search).get('authorization_id');
+      const SCOPES = { openid: 'Confirm who you are', email: 'See your email address', profile: 'See your name and picture', phone: 'See your phone number' };
+
+      if (!id) root.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'err', style: 'margin:0' }, 'This sign-in link is incomplete. Go back to the app and try again.')));
+      else signInBox(root, 'Sign in with your CutVid account to continue.', show);
+
+      async function show(session) {
+        root.replaceChildren(el('p', { class: 'muted' }, 'Loading…'));
+        const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(id);
+        if (error) {
+          root.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'err', style: 'margin:0' }, error.message)));
+          return;
+        }
+        // Already allowed before: go straight back to the app.
+        if (!('authorization_id' in data)) {
+          location.href = data.redirect_url;
+          return;
+        }
+        const status = el('p', { class: 'status', role: 'status' });
+        const decide = async (approve) => {
+          setStatus(status, 'One moment…', 'muted');
+          const r = approve ? await supabase.auth.oauth.approveAuthorization(id, { skipBrowserRedirect: true }) : await supabase.auth.oauth.denyAuthorization(id, { skipBrowserRedirect: true });
+          if (r.error) return setStatus(status, r.error.message, 'err');
+          location.href = r.data.redirect_url;
+        };
+        const scopes = (data.scope || '').split(/\s+/).filter(Boolean);
+        root.replaceChildren(
+          el(
+            'div',
+            { class: 'card stack' },
+            el('h1', { style: 'font-size:24px;margin:0' }, `${data.client.name} wants to use your CutVid account`),
+            el('p', { class: 'muted', style: 'margin:0' }, 'Signed in as ', el('bdi', {}, session.user.email)),
+            scopes.length ? el('ul', { class: 'scopes' }, scopes.map((s) => el('li', {}, SCOPES[s] || s))) : null,
+            el('p', { class: 'mono', style: 'margin:0' }, 'You will return to ', data.redirect_uri),
+            el('div', { class: 'row' }, el('button', { class: 'btn', onclick: () => decide(true) }, 'Allow'), el('button', { class: 'btn ghost', onclick: () => decide(false) }, 'Cancel')),
+            status,
+          ),
+        );
+      }
+    </script>
+  </body>
+</html>

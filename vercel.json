@@ -4,5 +4,26 @@
   "installCommand": "true",
   "buildCommand": "rm -rf site-dist && mkdir site-dist && cp -r site/. site-dist/ && cp public/auth.html public/version.json public/icon.svg public/icon-512.png site-dist/",
   "outputDirectory": "site-dist",
-  "rewrites": [{ "source": "/callback", "destination": "/auth.html" }]
+  "rewrites": [
+    {
+      "source": "/callback",
+      "destination": "/auth.html"
+    },
+    {
+      "source": "/developers",
+      "destination": "/developers.html"
+    },
+    {
+      "source": "/developers/console",
+      "destination": "/developers-console.html"
+    },
+    {
+      "source": "/developers/review",
+      "destination": "/developers-review.html"
+    },
+    {
+      "source": "/oauth/consent",
+      "destination": "/oauth-consent.html"
+    }
+  ]
 }

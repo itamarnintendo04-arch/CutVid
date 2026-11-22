@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="stylesheet" href="/dev.css" />
+    <title>Review app request</title>
+  </head>
+  <body>
+    <header>
+      <div class="wrap"><a class="brand" href="/"><img src="/icon.svg" width="30" height="30" alt="" />CutVid</a></div>
+    </header>
+    <main class="wrap">
+      <div class="card stack center">
+        <h1 id="title">Review app request</h1>
+        <p id="text" class="muted" style="margin: 0"></p>
+        <!-- A button, not an automatic action: email scanners open links, so the decision needs a click. -->
+        <button class="btn" id="go" hidden></button>
+        <p id="status" class="status" role="status"></p>
+      </div>
+    </main>
+    <script type="module">
+      import { api, $, setStatus } from '/dev.js';
+      const q = new URLSearchParams(location.search);
+      const decision = q.get('decision');
+      const go = $('#go');
+      if (!q.get('id') || !q.get('sig') || !['approve', 'reject'].includes(decision)) {
+        $('#text').textContent = 'This link is incomplete. Open it again from the email.';
+      } else {
+        const approve = decision === 'approve';
+        $('#title').textContent = approve ? 'Approve this app?' : 'Reject this app?';
+        $('#text').textContent = approve
+          ? 'The developer gets a welcome email with a link to create their keys.'
+          : 'The developer gets an email that it was not approved this time.';
+        go.textContent = approve ? 'Approve' : 'Reject';
+        go.className = approve ? 'btn' : 'btn danger';
+        go.hidden = false;
+        go.addEventListener('click', async () => {
+          go.disabled = true;
+          setStatus($('#status'), 'Saving…', 'muted');
+          try {
+            const r = await api('review', { id: q.get('id'), decision, sig: q.get('sig') });
+            go.hidden = true;
+            const word = r.status === 'approved' ? 'approved' : 'rejected';
+            setStatus($('#status'), r.already ? `“${r.name}” was already ${word}.` : `“${r.name}” is ${word}. The developer was emailed.`, 'ok');
+          } catch (err) {
+            setStatus($('#status'), err.message, 'err');
+            go.disabled = false;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0c10" />
+    <meta name="description" content="Add Sign in with CutVid to your app. Apply for OAuth access, get approved and create your Client ID and Secret." />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="stylesheet" href="/dev.css" />
+    <title>CutVid for developers</title>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <a class="brand" href="/"><img src="/icon.svg" width="30" height="30" alt="" />CutVid</a>
+        <nav>
+          <a href="/developers" aria-current="page">Developers</a>
+          <a href="/developers/console">Console</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <h1>Sign in with CutVid</h1>
+      <p class="lead">Let people sign in to your app with their CutVid account (OAuth 2.1 / OpenID Connect). Send a request below — once it is approved you create your keys in the developer console.</p>
+
+      <div class="steps">
+        <div class="card"><b>1 · Apply</b><p>Tell us about your app. You get an email that we received it.</p></div>
+        <div class="card"><b>2 · Review</b><p>We email you when it is approved — or not this time.</p></div>
+        <div class="card"><b>3 · Create keys</b><p>Sign in with the same email and create your Client ID and Secret.</p></div>
+      </div>
+
+      <div class="card">
+        <h2>Apply for OAuth access</h2>
+        <form id="apply">
+          <label>App name<input id="name" required minlength="2" maxlength="60" autocomplete="off" /></label>
+          <label>Website (optional)<input id="website" type="url" placeholder="https://" maxlength="300" dir="ltr" /></label>
+          <label>What does your app do, and why does it need CutVid sign-in?<textarea id="description" required minlength="10" maxlength="2000" dir="auto"></textarea></label>
+          <label>Redirect URLs<textarea id="uris" required dir="ltr" placeholder="https://myapp.com/auth/callback" style="min-height: 80px"></textarea></label>
+          <p class="hint">One per line. https://, http://localhost or an app scheme like com.example.app://callback</p>
+          <label>Your email<input id="email" type="email" required autocomplete="email" maxlength="200" dir="ltr" /></label>
+          <p class="hint">Use the email of your CutVid account — you sign in with it to create the keys.</p>
+          <button class="btn" type="submit" id="send">Send request</button>
+          <p id="status" class="status" role="status"></p>
+        </form>
+      </div>
+    </main>
+
+    <footer><div class="wrap">CutVid · developer program</div></footer>
+
+    <script type="module">
+      import { api, $, setStatus } from '/dev.js';
+      $('#apply').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const status = $('#status');
+        const send = $('#send');
+        send.disabled = true;
+        setStatus(status, 'Sending…', 'muted');
+        try {
+          await api('apply', {
+            name: $('#name').value,
+            website: $('#website').value,
+            description: $('#description').value,
+            redirect_uris: $('#uris').value.split(/\s+/).filter(Boolean),
+            email: $('#email').value,
+          });
+          e.target.reset();
+          setStatus(status, 'Request sent! Check your email — we will let you know when it is reviewed.', 'ok');
+        } catch (err) {
+          setStatus(status, err.message, 'err');
+        } finally {
+          send.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
