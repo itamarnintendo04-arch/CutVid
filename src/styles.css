@@ -371,3 +371,33 @@ h2.with-status { display: flex; align-items: center; gap: 10px; }
 .icon-choice.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .icon-choice.active small { color: var(--text); }
 .icon-choice img { border-radius: 22%; }
+
+/* ---- home tabs ---- */
+.home-tabs { display: flex; gap: 4px; padding: 6px 16px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+.home-tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); padding: 10px 14px; }
+.home-tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+.settings-body { max-width: 640px; }
+.settings-list { display: flex; flex-direction: column; }
+@media (max-width: 860px) {
+  /* Phones: the tabs sit at the bottom like the editor's tab bar. */
+  .home-tabs { order: 3; padding: 0; border-bottom: 0; border-top: 1px solid var(--line); }
+  .home-tabs button { flex: 1; flex-direction: column; gap: 2px; font-size: 11px; border-bottom: 0; padding: 8px 4px; }
+  .home-tabs button.active { color: var(--accent-2); }
+  .home-body { order: 2; }
+  .home-top { order: 1; }
+}
+
+.account-page h2 { margin: 0 0 12px; font-size: 18px; }
+.account-page { padding-bottom: 72px; }
+.settings-list { padding-bottom: 72px; }
+/* Small feedback button in the bottom corner on the reading-direction end side (right in English, left in Hebrew). */
+.feedback-fab {
+  position: fixed; z-index: 20; inset-inline-end: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+  font-size: 13px; background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+}
+@media (max-width: 860px) {
+  .feedback-fab { bottom: calc(76px + env(safe-area-inset-bottom)); padding: 8px; }
+  .feedback-fab span { display: none; }
+}

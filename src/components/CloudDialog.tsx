@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { CloudUpload, LogOut } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { useT } from '../lib/i18n';
@@ -6,7 +6,7 @@ import { clearConfig, clearRecovery, getConfig, recoveryPending, sendPasswordRes
 import { syncAll, useSync } from '../lib/sync';
 import { Dialog } from './ui';
 
-export function CloudDialog({ onClose }: { onClose: () => void }) {
+export function CloudDialog({ onClose, inline }: { onClose: () => void; inline?: boolean }) {
   const t = useT();
   const [cfg, setCfg] = useState(getConfig);
   const [url, setUrl] = useState('');
@@ -115,7 +115,7 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
     });
 
   return (
-    <Dialog title={t('cloudTitle')} onClose={onClose}>
+    <Wrap inline={inline} title={inline ? t('account') : t('cloudTitle')} onClose={onClose}>
       {!cfg ? (
         <div className="stack">
           <p className="muted">{t('cloudIntro')}</p>
@@ -235,6 +235,17 @@ export function CloudDialog({ onClose }: { onClose: () => void }) {
       )}
       {status && <p className="muted">{status}</p>}
       {error && <p className="error">{error}</p>}
-    </Dialog>
+    </Wrap>
+  );
+}
+
+/** The account screen is a dialog inside a project and a full tab on the home screen. */
+function Wrap(props: { inline?: boolean; title: string; onClose: () => void; children: ReactNode }) {
+  if (!props.inline) return <Dialog title={props.title} onClose={props.onClose}>{props.children}</Dialog>;
+  return (
+    <div className="account-page">
+      <h2>{props.title}</h2>
+      {props.children}
+    </div>
   );
 }

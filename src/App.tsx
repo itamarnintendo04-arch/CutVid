@@ -125,7 +125,7 @@ export function App() {
   if (screen === 'home')
     return (
       <>
-        <Home onCloud={() => setDialog('cloud')} onFeedback={() => setDialog('feedback')} />
+        <Home />
         {dialogs}
       </>
     );

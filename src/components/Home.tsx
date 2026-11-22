@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Bell, Cloud, CloudAlert, CloudCheck, Languages, MessageSquareText, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { Bell, CloudAlert, CloudCheck, FolderOpen, MessageSquareText, Plus, RefreshCw, Settings, Trash2, UserRound, X } from 'lucide-react';
+import { CloudDialog } from './CloudDialog';
+import { SettingsPanel } from './Panels';
 import { emptyProject, useStore } from '../store';
 import { dbAll, dbDel, dbSet } from '../lib/db';
 import { media } from '../engine/media';
@@ -29,9 +31,9 @@ export async function openProject(p: Project) {
 
 const NOTIFY_DISMISSED = 'cutvid:notify-dismissed';
 
-export function Home({ onCloud, onFeedback }: { onCloud: () => void; onFeedback: () => void }) {
+export function Home() {
   const t = useT();
-  const lang = useStore((s) => s.lang);
+  const [tab, setTab] = useState<'projects' | 'account' | 'settings'>('projects');
   const [list, setList] = useState<Project[]>([]);
   const [aspect, setAspect] = useState({ w: 1920, h: 1080 });
   const [notifyPerm, setNotifyPerm] = useState<NotifyState>('unsupported');
@@ -82,18 +84,34 @@ export function Home({ onCloud, onFeedback }: { onCloud: () => void; onFeedback:
           <img src="./icon.svg" alt="" width={32} height={32} />
           <b>CutVid</b>
         </div>
-        <span className="spacer" />
-        <button className="icon-btn" onClick={() => useStore.getState().setLang(lang === 'he' ? 'en' : 'he')} aria-label="language" title="עברית / English">
-          <Languages size={19} />
-        </button>
-        <button className="top-btn" onClick={onFeedback}>
-          <MessageSquareText size={16} /> <span>{t('feedback')}</span>
-        </button>
-        <button className="top-btn" onClick={onCloud}>
-          <Cloud size={16} /> <span>{t('account')}</span>
-        </button>
       </header>
 
+      <nav className="home-tabs" aria-label="CutVid">
+        <button className={tab === 'projects' ? 'active' : ''} onClick={() => setTab('projects')} aria-current={tab === 'projects'}>
+          <FolderOpen size={19} />
+          {t('projects')}
+        </button>
+        <button className={tab === 'account' ? 'active' : ''} onClick={() => setTab('account')} aria-current={tab === 'account'}>
+          <UserRound size={19} />
+          {t('account')}
+        </button>
+        <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')} aria-current={tab === 'settings'}>
+          <Settings size={19} />
+          {t('settings')}
+        </button>
+      </nav>
+
+      {tab === 'account' && (
+        <div className="home-body settings-body">
+          <CloudDialog inline onClose={() => setTab('projects')} />
+        </div>
+      )}
+      {tab === 'settings' && (
+        <div className="home-body settings-body">
+          <SettingsPanel />
+        </div>
+      )}
+      {tab === 'projects' && (
       <div className="home-body">
         {update && <div className="banner accent">{t('updateAvailable')}</div>}
         {notifyPerm === 'prompt' && !dismissed && (
@@ -162,6 +180,12 @@ export function Home({ onCloud, onFeedback }: { onCloud: () => void; onFeedback:
           </div>
         </section>
       </div>
+      )}
+
+      <button className="feedback-fab" onClick={() => window.dispatchEvent(new Event('cutvid:open-feedback'))} aria-label={t('feedback')} title={t('feedback')}>
+        <MessageSquareText size={16} />
+        <span>{t('feedback')}</span>
+      </button>
     </div>
   );
 }
