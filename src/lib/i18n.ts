@@ -17,6 +17,7 @@ import { type Lang } from './lang';
 export { LANGUAGES, initialLang, isLang, isRtl, type Lang } from './lang';
 
 const he = {
+  aiSignIn: 'כדי להשתמש ב-CutVid AI צריך להתחבר לחשבון CutVid.',
   signInForProjects: 'התחברו כדי לראות ולפתוח את הפרויקטים. הם נשמרים בחשבון ומסתנכרנים בין המכשירים.',
   create: 'יצירה',
   media: 'מדיה',
@@ -304,6 +305,7 @@ const he = {
 type Key = keyof typeof he;
 
 const en: Record<Key, string> = {
+  aiSignIn: 'Sign in to your CutVid account to use CutVid AI.',
   signInForProjects: 'Sign in to see and open your projects. They are kept in your account and sync across your devices.',
   create: 'Create',
   media: 'Media',

@@ -413,3 +413,5 @@ h2.with-status { display: flex; align-items: center; gap: 10px; }
 .sign-in-gate { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; padding: 48px 16px; color: var(--muted); }
 .sign-in-gate p { max-width: 360px; margin: 0; }
 .account-inline .stack { gap: 12px; }
+.ai-signin { margin: 8px; padding: 12px; border: 1px solid var(--accent); border-radius: 12px; display: flex; flex-direction: column; gap: 8px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.ai-signin p { margin: 0; }

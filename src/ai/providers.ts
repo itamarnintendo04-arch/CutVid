@@ -142,9 +142,9 @@ export async function chat(providerId: string, cfg: ProviderConfig, system: stri
 
   if (def.wire === 'cutvid') {
     const c = supabase();
-    if (!c) throw new Error('CutVid AI needs the Supabase cloud to be connected');
+    if (!c) throw new Error('CutVid AI is not available in this build');
     const { data: session } = await c.auth.getSession();
-    if (!session.session) throw new Error('Sign in to the cloud to use CutVid AI');
+    if (!session.session) throw new Error('Sign in to your CutVid account to use CutVid AI');
     const { data, error } = await c.functions.invoke('cutvid-ai', { body: { system, messages } });
     if (error) {
       // FunctionsHttpError hides the body; surface what the function actually said.

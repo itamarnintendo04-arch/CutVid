@@ -6,6 +6,7 @@ import { PROVIDERS, chat, configFor, listModels, loadAiSettings, providerDef, sa
 import { SYSTEM_PROMPT, applyOps, parseReply, projectSummary } from '../ai/assistant';
 import { notify } from '../lib/notify';
 import { useSettings } from '../lib/settings';
+import { useSignedIn } from '../lib/supabase';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -35,6 +36,8 @@ export function AiPanel() {
   const cfg = configFor(settings, def.id);
   const [showSettings, setShowSettings] = useState(def.wire !== 'cutvid' && !cfg.model);
   const log = useRef<HTMLDivElement>(null);
+  const signedIn = useSignedIn();
+  const needsSignIn = def.wire === 'cutvid' && !signedIn;
 
   useEffect(() => {
     savedTurns = turns;
@@ -158,6 +161,15 @@ export function AiPanel() {
               <p className="muted small">{t('keyStoredLocally')}</p>
             </>
           )}
+        </div>
+      )}
+
+      {needsSignIn && (
+        <div className="ai-signin">
+          <p>{t('aiSignIn')}</p>
+          <button className="primary" onClick={() => window.dispatchEvent(new Event('cutvid:open-cloud'))}>
+            {t('signIn')}
+          </button>
         </div>
       )}
 
