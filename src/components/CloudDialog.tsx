@@ -115,7 +115,7 @@ export function CloudDialog({ onClose, inline }: { onClose: () => void; inline?:
     });
 
   return (
-    <Wrap inline={inline} title={inline ? t('account') : t('cloudTitle')} onClose={onClose}>
+    <Wrap inline={inline} title={t('account')} onClose={onClose}>
       {!cfg ? (
         <div className="stack">
           <p className="muted">{t('cloudIntro')}</p>
@@ -165,9 +165,7 @@ export function CloudDialog({ onClose, inline }: { onClose: () => void; inline?:
         </div>
       ) : !user ? (
         <div className="stack">
-          <p className="muted" dir="ltr">
-            {cfg.url}
-          </p>
+          <p className="muted">{t('syncOff')}</p>
           <button className="google-btn" disabled={working} onClick={google}>
             <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
               <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.2C12.4 13.6 17.7 9.5 24 9.5z" />
@@ -197,9 +195,7 @@ export function CloudDialog({ onClose, inline }: { onClose: () => void; inline?:
               {t('forgotPassword')}
             </button>
             <span className="spacer" />
-            {cfg.fromEnv ? (
-              <small className="muted">{t('configuredByBuild')}</small>
-            ) : (
+            {cfg.fromEnv ? null : (
               <button
                 onClick={() => {
                   clearConfig();
@@ -239,13 +235,8 @@ export function CloudDialog({ onClose, inline }: { onClose: () => void; inline?:
   );
 }
 
-/** The account screen is a dialog inside a project and a full tab on the home screen. */
+/** The account screen is a dialog inside a project and a section of Settings on the home screen. */
 function Wrap(props: { inline?: boolean; title: string; onClose: () => void; children: ReactNode }) {
   if (!props.inline) return <Dialog title={props.title} onClose={props.onClose}>{props.children}</Dialog>;
-  return (
-    <div className="account-page">
-      <h2>{props.title}</h2>
-      {props.children}
-    </div>
-  );
+  return <div className="account-inline">{props.children}</div>;
 }

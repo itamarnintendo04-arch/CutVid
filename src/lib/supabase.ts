@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Project } from '../types';
 import { Capacitor } from '@capacitor/core';
@@ -285,4 +286,17 @@ export async function sendFeedback(message: string, rating: number | null, email
     .from('feedback')
     .insert({ message: message.trim().slice(0, 4000), rating, email: email.trim().slice(0, 200) || null, platform });
   if (error) throw new Error(error.message);
+}
+
+/** Whether someone is signed in right now; updates on sign-in and sign-out. */
+export function useSignedIn(): boolean {
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    const c = supabase();
+    if (!c) return;
+    c.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data } = c.auth.onAuthStateChange((_e, session) => setSignedIn(!!session));
+    return () => data.subscription.unsubscribe();
+  }, []);
+  return signedIn;
 }

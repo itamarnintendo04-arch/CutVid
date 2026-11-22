@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Bell, Clapperboard, CloudAlert, CloudCheck, FolderOpen, MessageSquareText, Plus, RefreshCw, Settings, Trash2, UserRound, X } from 'lucide-react';
-import { CloudDialog } from './CloudDialog';
+import { Bell, Clapperboard, CloudAlert, CloudCheck, FolderOpen, MessageSquareText, Plus, RefreshCw, Settings, Trash2, X } from 'lucide-react';
 import { SettingsPanel } from './Panels';
 import { emptyProject, useStore } from '../store';
 import { dbAll, dbDel, dbSet } from '../lib/db';
 import { media } from '../engine/media';
 import { useT } from '../lib/i18n';
 import { checkForUpdate, notify, notifyState, requestNotify, type NotifyState } from '../lib/notify';
-import { SITE_URL, downloadMissing } from '../lib/supabase';
+import { SITE_URL, downloadMissing, useSignedIn } from '../lib/supabase';
 import { deleteEverywhere, syncAll, useSync } from '../lib/sync';
 import type { Project } from '../types';
 import { projectDuration } from '../types';
@@ -29,7 +28,7 @@ export async function openProject(p: Project) {
   localStorage.setItem('cutvid:last', p.id);
 }
 
-type HomeTab = 'create' | 'projects' | 'account' | 'settings';
+type HomeTab = 'create' | 'projects' | 'settings';
 
 const NOTIFY_DISMISSED = 'cutvid:notify-dismissed';
 
@@ -42,6 +41,7 @@ export function Home() {
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(NOTIFY_DISMISSED) === '1');
   const [update, setUpdate] = useState<number | null>(null);
   const sync = useSync();
+  const signedIn = useSignedIn();
 
   const refresh = () => dbAll<Project>('projects').then((all) => setList(all.sort((a, b) => b.updatedAt - a.updatedAt)));
   // Reload the list whenever a sync pulled or removed projects.
@@ -82,7 +82,6 @@ export function Home() {
   const tabs = [
     { id: 'create', icon: Clapperboard },
     { id: 'projects', icon: FolderOpen },
-    { id: 'account', icon: UserRound },
     { id: 'settings', icon: Settings },
   ] as const;
 
@@ -104,11 +103,6 @@ export function Home() {
         ))}
       </nav>
 
-      {tab === 'account' && (
-        <div className="home-body settings-body">
-          <CloudDialog inline onClose={() => setTab('projects')} />
-        </div>
-      )}
       {tab === 'settings' && (
         <div className="home-body settings-body">
           <SettingsPanel />
@@ -150,7 +144,18 @@ export function Home() {
 
       </div>
       )}
-      {tab === 'projects' && (
+      {tab === 'projects' && !signedIn && (
+        <div className="home-body">
+          <div className="sign-in-gate">
+            <FolderOpen size={36} />
+            <p>{t('signInForProjects')}</p>
+            <button className="primary" onClick={() => setTab('settings')}>
+              {t('signIn')}
+            </button>
+          </div>
+        </div>
+      )}
+      {tab === 'projects' && signedIn && (
       <div className="home-body">
         <section>
           <h2 className="with-status">

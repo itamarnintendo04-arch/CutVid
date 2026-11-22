@@ -409,3 +409,7 @@ h2.with-status { display: flex; align-items: center; gap: 10px; }
 @media (max-width: 860px) {
   .home-tabs button { min-width: 0; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
+
+.sign-in-gate { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; padding: 48px 16px; color: var(--muted); }
+.sign-in-gate p { max-width: 360px; margin: 0; }
+.account-inline .stack { gap: 12px; }

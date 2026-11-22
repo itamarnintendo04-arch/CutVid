@@ -17,6 +17,7 @@ import { type Lang } from './lang';
 export { LANGUAGES, initialLang, isLang, isRtl, type Lang } from './lang';
 
 const he = {
+  signInForProjects: 'התחברו כדי לראות ולפתוח את הפרויקטים. הם נשמרים בחשבון ומסתנכרנים בין המכשירים.',
   create: 'יצירה',
   media: 'מדיה',
   text: 'טקסט',
@@ -171,7 +172,7 @@ const he = {
   thinking: 'חושב…',
   aiSettings: 'הגדרות ספק',
   keyStoredLocally: 'המפתח נשמר במכשיר הזה בלבד ונשלח רק לספק שבחרתם.',
-  cutvidAiHint: 'CutVid AI מובנה רץ דרך ענן Supabase — התחברו בכפתור "ענן". אפשר גם לבחור ספק משלכם.',
+  cutvidAiHint: 'CutVid AI עובד דרך החשבון שלכם — התחברו בהגדרות במסך הבית. אפשר גם לבחור ספק משלכם.',
   applied: 'שינויים הוחלו',
   noChanges: 'לא בוצעו שינויים',
   clearChat: 'נקה שיחה',
@@ -303,6 +304,7 @@ const he = {
 type Key = keyof typeof he;
 
 const en: Record<Key, string> = {
+  signInForProjects: 'Sign in to see and open your projects. They are kept in your account and sync across your devices.',
   create: 'Create',
   media: 'Media',
   text: 'Text',
@@ -457,7 +459,7 @@ const en: Record<Key, string> = {
   thinking: 'Thinking…',
   aiSettings: 'Provider settings',
   keyStoredLocally: 'The key is stored on this device only and is sent only to the provider you chose.',
-  cutvidAiHint: 'The built-in CutVid AI runs through the Supabase cloud — sign in with the "Cloud" button. You can also pick your own provider.',
+  cutvidAiHint: 'CutVid AI works through your account — sign in under Settings on the home screen. You can also pick your own provider.',
   applied: 'changes applied',
   noChanges: 'No changes were made',
   clearChat: 'Clear chat',

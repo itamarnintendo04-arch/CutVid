@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Diamond, Save, Trash2 } from 'lucide-react';
 import { selectedClip, useStore } from '../store';
 import { LANGUAGES, useT, type TKey } from '../lib/i18n';
+import { CloudDialog } from './CloudDialog';
 import type { AnimProp, AnimationType, BlendMode, Clip, ClipEffect, Easing, EffectType, Filters, ShapeStyle } from '../types';
 import { ANIMATION_TYPES, ANIM_PROPS, DEFAULT_FILTERS, DEFAULT_TEXT, EFFECT_TYPES, SHAPE_KINDS } from '../types';
 import { EASINGS, easeFn, findKeyframe, propAt } from '../engine/keyframes';
@@ -550,6 +551,10 @@ export function SettingsPanel() {
 
   return (
     <div className="settings-list">
+      <Section title={t('account')}>
+        <CloudDialog inline onClose={() => {}} />
+      </Section>
+
       <Section title={t('language')}>
         <div className="lang-grid" role="radiogroup" aria-label={t('language')}>
           {LANGUAGES.map((l) => (
