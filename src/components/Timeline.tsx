@@ -1,10 +1,11 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Copy, Eye, EyeOff, Lock, Magnet, Maximize2, Music, Plus, Scissors, Trash2, Unlock, Video, Volume2, VolumeX, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { Copy, Diamond, Eye, EyeOff, Lock, Magnet, Maximize2, Music, Plus, Scissors, Trash2, Unlock, Video, Volume2, VolumeX, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { resolveOverlap, totalDuration, useStore } from '../store';
 import { media } from '../engine/media';
 import { useT } from '../lib/i18n';
 import type { Clip, MediaAsset, Track } from '../types';
-import { clipEnd } from '../types';
+import { ANIM_PROPS, clipEnd } from '../types';
+import { KF_EPS, findKeyframe } from '../engine/keyframes';
 
 const LANE_H = 54;
 const RULER_H = 26;
@@ -258,6 +259,12 @@ export function Timeline() {
   for (let s = 0; s * zoom < contentW; s += stepS) ticks.push(+s.toFixed(3));
 
   const st = useStore.getState();
+  // The keyframe diamond works on the selected picture/text/shape clip while the playhead is over it.
+  const kfClip = project.clips.find((c) => c.id === selection[0] && c.type !== 'audio');
+  const kfLocal = kfClip ? time - kfClip.start : -1;
+  const kfUsable = !!kfClip && kfLocal >= -KF_EPS && kfLocal <= kfClip.duration + KF_EPS;
+  const kfOn = kfUsable && ANIM_PROPS.some((prop) => findKeyframe(kfClip as Clip, prop, Math.max(0, Math.min(kfClip!.duration, kfLocal))) >= 0);
+  const kfAnimated = !!kfClip && ANIM_PROPS.some((prop) => kfClip.keyframes[prop]?.length);
   return (
     <div className="timeline">
       <div className="tl-toolbar">
@@ -269,6 +276,15 @@ export function Timeline() {
         </button>
         <button className="tool" onClick={st.deleteSelection} disabled={!selection.length} title={`${t('delete')} (Del)`}>
           <Trash2 size={15} /> <span>{t('delete')}</span>
+        </button>
+        <button
+          className={'tool kf-tool' + (kfOn ? ' on' : kfAnimated ? ' animated' : '')}
+          onClick={() => kfClip && st.toggleAllKeyframes(kfClip.id)}
+          disabled={!kfUsable}
+          title={kfUsable ? t('keyframe') : t('selectVisualClip')}
+          aria-pressed={kfOn}
+        >
+          <Diamond size={15} fill={kfOn ? 'currentColor' : 'none'} /> <span>{t('keyframe')}</span>
         </button>
         <span className="sep" />
         <button className="tool" onClick={() => st.addTrack('video')} title={t('addVideoTrack')}>

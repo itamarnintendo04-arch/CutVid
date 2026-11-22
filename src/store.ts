@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { produce, type Draft } from 'immer';
 import type { AnimProp, Clip, Easing, EffectType, MediaAsset, Project, ShapeStyle, Track, TrackKind } from './types';
-import { DEFAULT_CHROMA, DEFAULT_FILTERS, DEFAULT_TEXT, DEFAULT_TRANSFORM, clipEnd, projectDuration, uid } from './types';
+import { ANIM_PROPS, DEFAULT_CHROMA, DEFAULT_FILTERS, DEFAULT_TEXT, DEFAULT_TRANSFORM, clipEnd, projectDuration, uid } from './types';
 import { KF_EPS, findKeyframe, propAt } from './engine/keyframes';
 import { dbSet } from './lib/db';
 import { initialLang, type Lang } from './lib/lang';
@@ -138,6 +138,8 @@ interface State {
   updateClip: (id: string, fn: (c: Draft<Clip>) => void, record?: boolean) => void;
   setProp: (id: string, prop: AnimProp, value: number, record?: boolean) => void;
   toggleKeyframe: (id: string, prop: AnimProp) => void;
+  /** The toolbar diamond: add a keyframe for every animatable property at the playhead, or remove them if one is there. */
+  toggleAllKeyframes: (id: string) => void;
   setSpeed: (id: string, speed: number) => void;
 }
 
@@ -362,6 +364,29 @@ export const useStore = create<State>((set, get) => ({
     );
   },
 
+  toggleAllKeyframes: (id) => {
+    const { time } = get();
+    get().updateClip(id, (c) => {
+      const lt = Math.max(0, Math.min(c.duration, time - c.start));
+      const present = ANIM_PROPS.some((prop) => findKeyframe(c as Clip, prop, lt) >= 0);
+      for (const prop of ANIM_PROPS) {
+        const i = findKeyframe(c as Clip, prop, lt);
+        if (present) {
+          if (i < 0) continue;
+          const kfs = c.keyframes[prop]!;
+          const [removed] = kfs.splice(i, 1);
+          if (!kfs.length) {
+            delete c.keyframes[prop];
+            c.transform[prop] = removed.v;
+          }
+        } else {
+          const kfs = (c.keyframes[prop] ??= []);
+          kfs.push({ t: lt, v: propAt(c as Clip, prop, lt), ease: 'easeInOut' });
+          kfs.sort((a, b) => a.t - b.t);
+        }
+      }
+    });
+  },
   toggleKeyframe: (id, prop) => {
     const { time } = get();
     get().updateClip(id, (c) => {
