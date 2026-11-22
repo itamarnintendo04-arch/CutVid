@@ -39,11 +39,28 @@ jobs:
   prepare:
     name: Create release
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
     steps:
+      - uses: actions/checkout@v4
+      # A pushed commit whose message contains [release] publishes an official release named after
+      # package.json's version (v1.0.0 → "CutVid v1.0.0") instead of a numbered build.
+      - id: v
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ "$MSG" == *"[release]"* ]]; then
+            ver="$(node -p "require('./package.json').version")"
+            echo "tag=v$ver" >> "$GITHUB_OUTPUT"
+            echo "name=CutVid v$ver" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
+          fi
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
-          name: ${{ env.RELEASE_NAME }}
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: ${{ steps.v.outputs.name }}
           target_commitish: ${{ github.sha }}
           prerelease: true
           make_latest: false
@@ -92,7 +109,7 @@ jobs:
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk CutVid-android.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
           files: CutVid-android.apk
           fail_on_unmatched_files: true
 
@@ -108,7 +125,7 @@ jobs:
       - run: npm run dist:win
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
           files: release/*.exe
           fail_on_unmatched_files: true
 
@@ -127,7 +144,7 @@ jobs:
       - run: npm run dist:mac
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
           files: release/*.dmg
           fail_on_unmatched_files: true
 
@@ -162,18 +179,18 @@ jobs:
           zip -qr CutVid-ios-unsigned.ipa Payload
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
           files: CutVid-ios-unsigned.ipa
           fail_on_unmatched_files: true
 
   # Once every platform succeeded, the release becomes the one the website's download links use.
   publish:
     name: Publish downloads
-    needs: [android, windows, mac, ios]
+    needs: [prepare, android, windows, mac, ios]
     runs-on: ubuntu-latest
     steps:
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
           prerelease: false
           make_latest: true
