@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { CloudUpload, LogOut } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { useT } from '../lib/i18n';
-import { clearConfig, clearRecovery, getConfig, recoveryPending, sendPasswordReset, sendSignInCode, setConfig, signInWithGoogle, signUpWithEmail, startEmailSignIn, supabase, verifySignInCode } from '../lib/supabase';
+import { clearConfig, clearRecovery, getConfig, recoveryPending, sendPasswordReset, sendSignInLink, setConfig, signInWithGoogle, signUpWithEmail, startEmailSignIn, supabase } from '../lib/supabase';
 import { syncAll, useSync } from '../lib/sync';
 import { Dialog } from './ui';
 
@@ -21,7 +21,6 @@ export function CloudDialog({ onClose, inline }: { onClose: () => void; inline?:
   const [recovering, setRecovering] = useState(recoveryPending);
   const [newPassword, setNewPassword] = useState('');
   const [codeStep, setCodeStep] = useState(false);
-  const [code, setCode] = useState('');
   // While the password step is in flight a short-lived session exists; do not show it as signed in.
   const gating = useRef(false);
 
@@ -78,15 +77,7 @@ export function CloudDialog({ onClose, inline }: { onClose: () => void; inline?:
       } finally {
         gating.current = false;
       }
-      setCode('');
       setCodeStep(true);
-      setStatus(t('codeSent'));
-    });
-
-  const verify = () =>
-    run(async () => {
-      await verifySignInCode(email.trim(), code);
-      setCodeStep(false);
       setPassword('');
     });
 
@@ -143,18 +134,12 @@ export function CloudDialog({ onClose, inline }: { onClose: () => void; inline?:
         </div>
       ) : !user && codeStep ? (
         <div className="stack">
+          <p>{t('linkSent')}</p>
           <p className="muted">
             <bdi>{email}</bdi>
           </p>
-          <label className="field">
-            <span className="field-label">{t('code')}</span>
-            <input className="code-input" dir="ltr" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={10} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
-          </label>
           <div className="row">
-            <button className="primary" disabled={working || code.length < 6} onClick={verify}>
-              {t('verify')}
-            </button>
-            <button disabled={working} onClick={() => run(() => sendSignInCode(email.trim()).then(() => setStatus(t('codeSent'))))}>
+            <button disabled={working} onClick={() => run(() => sendSignInLink(email.trim()).then(() => setStatus(t('linkSent'))))}>
               {t('resend')}
             </button>
             <span className="spacer" />

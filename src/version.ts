@@ -1,2 +1,2 @@
 /** Bumped together with public/version.json whenever a build worth announcing ships. */
-export const APP_VERSION = 23;
+export const APP_VERSION = 24;

@@ -157,8 +157,9 @@ export async function signUpWithEmail(email: string, password: string): Promise<
 }
 
 /**
- * Step 1 of sign-in: check the password, then email a one-time code.
- * The password session is dropped so the app only stays signed in after the code is verified.
+ * Sign-in with email: check the password, then email a sign-in link. Opening the link on this device
+ * (it comes back through ${SITE_URL}/callback) finishes signing in.
+ * The password session is dropped so the app only stays signed in after the link is opened.
  * (This gate lives in the app; it is not server-enforced MFA.)
  */
 export async function startEmailSignIn(email: string, password: string) {
@@ -166,18 +167,13 @@ export async function startEmailSignIn(email: string, password: string) {
   const res = await c.auth.signInWithPassword({ email, password });
   if (res.error) throw new Error(res.error.message);
   await c.auth.signOut({ scope: 'local' });
-  await sendSignInCode(email);
+  await sendSignInLink(email);
 }
 
-export async function sendSignInCode(email: string) {
-  const { error } = await need().auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+export async function sendSignInLink(email: string) {
+  const { error } = await need().auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectUrl() } });
   if (error) throw new Error(error.message);
-}
-
-/** Step 2 of sign-in: verify the emailed code. */
-export async function verifySignInCode(email: string, token: string) {
-  const { error } = await need().auth.verifyOtp({ email, token: token.trim(), type: 'email' });
-  if (error) throw new Error(error.message);
+  awaitDesktopLink();
 }
 
 /** iOS / Android: handle com.cutvid.app:// links (Google sign-in, password reset). */
