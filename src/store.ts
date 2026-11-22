@@ -4,7 +4,7 @@ import type { AnimProp, Clip, Easing, EffectType, MediaAsset, Project, ShapeStyl
 import { DEFAULT_CHROMA, DEFAULT_FILTERS, DEFAULT_TEXT, DEFAULT_TRANSFORM, clipEnd, projectDuration, uid } from './types';
 import { KF_EPS, findKeyframe, propAt } from './engine/keyframes';
 import { dbSet } from './lib/db';
-import type { Lang } from './lib/i18n';
+import { initialLang, type Lang } from './lib/lang';
 
 export function emptyProject(name = 'Untitled'): Project {
   return {
@@ -151,8 +151,8 @@ export const useStore = create<State>((set, get) => ({
   playing: false,
   selection: [],
   zoom: 80,
-  // English by default; the language button in the top bar switches to Hebrew.
-  lang: localStorage.getItem('cutvid:lang') === 'he' ? 'he' : 'en',
+  // The saved choice, else the device language, else English. Changed in Settings → Language.
+  lang: initialLang(),
   busy: null,
   screen: 'home',
   panelTab: 'media',

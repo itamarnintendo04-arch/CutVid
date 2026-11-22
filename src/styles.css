@@ -401,3 +401,11 @@ h2.with-status { display: flex; align-items: center; gap: 10px; }
   .feedback-fab { bottom: calc(76px + env(safe-area-inset-bottom)); padding: 8px; }
   .feedback-fab span { display: none; }
 }
+
+.lang-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.lang-choice { justify-content: flex-start; }
+.lang-choice.active { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.empty-projects { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+@media (max-width: 860px) {
+  .home-tabs button { min-width: 0; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

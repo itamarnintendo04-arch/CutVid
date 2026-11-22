@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, CloudAlert, CloudCheck, FolderOpen, MessageSquareText, Plus, RefreshCw, Settings, Trash2, UserRound, X } from 'lucide-react';
+import { Bell, Clapperboard, CloudAlert, CloudCheck, FolderOpen, MessageSquareText, Plus, RefreshCw, Settings, Trash2, UserRound, X } from 'lucide-react';
 import { CloudDialog } from './CloudDialog';
 import { SettingsPanel } from './Panels';
 import { emptyProject, useStore } from '../store';
@@ -29,11 +29,13 @@ export async function openProject(p: Project) {
   localStorage.setItem('cutvid:last', p.id);
 }
 
+type HomeTab = 'create' | 'projects' | 'account' | 'settings';
+
 const NOTIFY_DISMISSED = 'cutvid:notify-dismissed';
 
 export function Home() {
   const t = useT();
-  const [tab, setTab] = useState<'projects' | 'account' | 'settings'>('projects');
+  const [tab, setTab] = useState<HomeTab>('create');
   const [list, setList] = useState<Project[]>([]);
   const [aspect, setAspect] = useState({ w: 1920, h: 1080 });
   const [notifyPerm, setNotifyPerm] = useState<NotifyState>('unsupported');
@@ -77,6 +79,13 @@ export function Home() {
     if (res === 'granted') notify('CutVid', t('notifyEnabled'));
   };
 
+  const tabs = [
+    { id: 'create', icon: Clapperboard },
+    { id: 'projects', icon: FolderOpen },
+    { id: 'account', icon: UserRound },
+    { id: 'settings', icon: Settings },
+  ] as const;
+
   return (
     <div className="home">
       <header className="home-top">
@@ -87,18 +96,12 @@ export function Home() {
       </header>
 
       <nav className="home-tabs" aria-label="CutVid">
-        <button className={tab === 'projects' ? 'active' : ''} onClick={() => setTab('projects')} aria-current={tab === 'projects'}>
-          <FolderOpen size={19} />
-          {t('projects')}
-        </button>
-        <button className={tab === 'account' ? 'active' : ''} onClick={() => setTab('account')} aria-current={tab === 'account'}>
-          <UserRound size={19} />
-          {t('account')}
-        </button>
-        <button className={tab === 'settings' ? 'active' : ''} onClick={() => setTab('settings')} aria-current={tab === 'settings'}>
-          <Settings size={19} />
-          {t('settings')}
-        </button>
+        {tabs.map(({ id, icon: Icon }) => (
+          <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)} aria-current={tab === id}>
+            <Icon size={19} />
+            {t(id)}
+          </button>
+        ))}
       </nav>
 
       {tab === 'account' && (
@@ -111,7 +114,7 @@ export function Home() {
           <SettingsPanel />
         </div>
       )}
-      {tab === 'projects' && (
+      {tab === 'create' && (
       <div className="home-body">
         {update && <div className="banner accent">{t('updateAvailable')}</div>}
         {notifyPerm === 'prompt' && !dismissed && (
@@ -145,6 +148,10 @@ export function Home() {
           </button>
         </section>
 
+      </div>
+      )}
+      {tab === 'projects' && (
+      <div className="home-body">
         <section>
           <h2 className="with-status">
             {t('projects')}
@@ -157,7 +164,14 @@ export function Home() {
           </h2>
           {sync.status === 'off' && <p className="muted small pad-b">{t('syncOff')}</p>}
           {sync.detail && <p className={(sync.status === 'error' ? 'error' : 'muted') + ' small pad-b'}>{sync.detail}</p>}
-          {!list.length && <p className="muted">{t('noProjects')}</p>}
+          {!list.length && (
+            <div className="empty-projects">
+              <p className="muted">{t('noProjects')}</p>
+              <button className="primary" onClick={() => setTab('create')}>
+                <Plus size={18} /> {t('newProject')}
+              </button>
+            </div>
+          )}
           <div className="project-grid">
             {list.map((p) => (
               <div key={p.id} className="project-card">

@@ -1,8 +1,23 @@
 import { useStore } from '../store';
 
-export type Lang = 'he' | 'en';
+import es from '../locales/es.json';
+import fr from '../locales/fr.json';
+import de from '../locales/de.json';
+import pt from '../locales/pt.json';
+import it from '../locales/it.json';
+import ru from '../locales/ru.json';
+import tr from '../locales/tr.json';
+import ar from '../locales/ar.json';
+import hi from '../locales/hi.json';
+import ja from '../locales/ja.json';
+import ko from '../locales/ko.json';
+import zh from '../locales/zh.json';
+
+import { type Lang } from './lang';
+export { LANGUAGES, initialLang, isLang, isRtl, type Lang } from './lang';
 
 const he = {
+  create: 'יצירה',
   media: 'מדיה',
   text: 'טקסט',
   elements: 'אלמנטים',
@@ -288,6 +303,7 @@ const he = {
 type Key = keyof typeof he;
 
 const en: Record<Key, string> = {
+  create: 'Create',
   media: 'Media',
   text: 'Text',
   elements: 'Elements',
@@ -570,14 +586,14 @@ const en: Record<Key, string> = {
   sug4: 'Arrange my clips in sequence with fade transitions',
 };
 
-const dict = { he, en };
+const dict: Record<Lang, Partial<Record<Key, string>>> = { he, en, es, fr, de, pt, it, ru, tr, ar, hi, ja, ko, zh };
 
 export type TKey = Key;
-export const translate = (lang: Lang, key: Key) => dict[lang][key];
+export const translate = (lang: Lang, key: Key): string => dict[lang]?.[key] ?? en[key];
 
 export function useT() {
   const lang = useStore((s) => s.lang);
-  return (key: Key) => dict[lang][key];
+  return (key: Key) => translate(lang, key);
 }
 
 export function formatTime(t: number, fps = 30): string {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download, Home as HomeIcon, Redo2, Undo2 } from 'lucide-react';
 import { useStore, type PanelTab } from './store';
 import { dbSet } from './lib/db';
-import { useT } from './lib/i18n';
+import { isRtl, useT } from './lib/i18n';
 import { player } from './engine/player';
 import { EDIT_ICON, Library, TABS, importFiles } from './components/Library';
 import { Inspector } from './components/Inspector';
@@ -55,7 +55,7 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.lang = lang;
-    document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+    document.documentElement.dir = isRtl(lang) ? 'rtl' : 'ltr';
   }, [lang]);
 
   // A password-reset link was opened, or a panel needs the user to sign in.

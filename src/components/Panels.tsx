@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Diamond, Save, Trash2 } from 'lucide-react';
 import { selectedClip, useStore } from '../store';
-import { useT, type TKey } from '../lib/i18n';
+import { LANGUAGES, useT, type TKey } from '../lib/i18n';
 import type { AnimProp, AnimationType, BlendMode, Clip, ClipEffect, Easing, EffectType, Filters, ShapeStyle } from '../types';
 import { ANIMATION_TYPES, ANIM_PROPS, DEFAULT_FILTERS, DEFAULT_TEXT, EFFECT_TYPES, SHAPE_KINDS } from '../types';
 import { EASINGS, easeFn, findKeyframe, propAt } from '../engine/keyframes';
@@ -550,6 +550,16 @@ export function SettingsPanel() {
 
   return (
     <div className="settings-list">
+      <Section title={t('language')}>
+        <div className="lang-grid" role="radiogroup" aria-label={t('language')}>
+          {LANGUAGES.map((l) => (
+            <button key={l.id} role="radio" aria-checked={lang === l.id} className={'lang-choice' + (lang === l.id ? ' active' : '')} lang={l.id} onClick={() => useStore.getState().setLang(l.id)}>
+              {l.name}
+            </button>
+          ))}
+        </div>
+      </Section>
+
       <Section title={t('notifications')}>
         {perm === 'prompt' && (
           <button className="primary" onClick={() => requestNotify().then(setPerm)}>
@@ -606,13 +616,6 @@ export function SettingsPanel() {
       {canChangeAppIcon() && <AppIconPicker />}
 
       <Section title={t('general')}>
-        <label className="field">
-          <span className="field-label">{t('language')}</span>
-          <select value={lang} onChange={(e) => useStore.getState().setLang(e.target.value as 'he')}>
-            <option value="en">English</option>
-            <option value="he">עברית</option>
-          </select>
-        </label>
         <p className="muted small">CutVid · build {APP_VERSION}</p>
       </Section>
     </div>
