@@ -49,15 +49,18 @@ async function listModels(base: string, key: string): Promise<string[]> {
   return list.map((m) => normalizeModel(String(m?.id ?? ''))).filter(Boolean);
 }
 
-/** Best stand-in when the configured model does not exist (renamed or retired): newest plain "flash" model. */
-function pickFallback(models: string[]): string | null {
-  const usable = models.filter((m) => /flash/.test(m) && !/image|tts|audio|live|embed|vision|thinking-exp/.test(m));
+/** Stand-ins when the configured model does not exist (renamed or retired), best first: newest plain "flash" models, then other chat models. */
+function fallbacks(models: string[], tried: string): string[] {
+  const chatty = models.filter((m) => m !== tried && !/image|tts|audio|live|embed|vision|thinking-exp|aqa|learnlm|imagen|veo|robotics|computer-use/.test(m));
   const score = (m: string) => {
     const v = Number((m.match(/(\d+(?:\.\d+)?)/) ?? [])[1] ?? 0);
-    return v * 10 - (/lite/.test(m) ? 3 : 0) - (/preview|exp/.test(m) ? 1 : 0);
+    return (/flash/.test(m) ? 100 : 0) + v * 10 - (/lite/.test(m) ? 3 : 0) - (/preview|exp/.test(m) ? 1 : 0);
   };
-  return usable.sort((a, b) => score(b) - score(a))[0] ?? null;
+  return chatty.sort((a, b) => score(b) - score(a)).slice(0, 4);
 }
+
+/** The model that last worked, so later requests skip the failed lookups while this instance is warm. */
+let workingModel: string | null = null;
 
 function providerError(status: number, body: any, fallback: string) {
   // Google sometimes wraps the error in an array.
@@ -68,7 +71,7 @@ function providerError(status: number, body: any, fallback: string) {
 async function viaOpenAiCompatible(system: string, messages: Msg[]): Promise<string> {
   const key = (Deno.env.get('AI_API_KEY') ?? '').trim();
   const base = normalizeBase(Deno.env.get('AI_BASE_URL'));
-  let model = normalizeModel(Deno.env.get('AI_MODEL') || 'gemini-2.5-flash');
+  let model = workingModel ?? normalizeModel(Deno.env.get('AI_MODEL') || 'gemini-2.5-flash');
 
   const call = (m: string) =>
     fetch(`${base}/chat/completions`, {
@@ -80,21 +83,27 @@ async function viaOpenAiCompatible(system: string, messages: Msg[]): Promise<str
   let res = await call(model);
   let body = await res.json().catch(() => null);
   if (res.status === 404) {
-    // Usually the model name: look at what this key can use and retry once with the closest match.
+    // Usually the model name: look at what this key can use and try the closest matches in turn.
+    const first = model;
     const models = await listModels(base, key).catch(() => [] as string[]);
-    const fallback = pickFallback(models);
-    console.log(`model ${model} not found at ${base}; ${models.length} models available; retrying with ${fallback}`);
-    if (!fallback) {
+    const candidates = fallbacks(models, first);
+    console.log(`model ${first} not found at ${base}; ${models.length} models available; trying ${candidates.join(', ')}`);
+    if (!candidates.length) {
       throw new Error(
         models.length
-          ? `AI model "${model}" was not found. Set AI_MODEL to one of: ${models.slice(0, 8).join(', ')}`
+          ? `AI model "${first}" was not found. Set AI_MODEL to one of: ${models.slice(0, 8).join(', ')}`
           : `AI provider 404 at ${base} — check AI_BASE_URL (or remove it to use Gemini) and AI_API_KEY`,
       );
     }
-    model = fallback;
-    res = await call(model);
-    body = await res.json().catch(() => null);
+    for (const m of candidates) {
+      model = m;
+      res = await call(m);
+      body = await res.json().catch(() => null);
+      if (res.status !== 404) break;
+    }
+    if (res.status === 404) throw new Error(`AI model "${first}" was not found and none of ${candidates.join(', ')} answered. Set AI_MODEL to a model your key can use.`);
   }
+  if (res.ok) workingModel = model;
   if (!res.ok) throw new Error(`AI provider error ${providerError(res.status, body, res.statusText)} (model ${model})`);
   const content = body?.choices?.[0]?.message?.content;
   if (typeof content === 'string') return content;
