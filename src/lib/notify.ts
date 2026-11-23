@@ -1,3 +1,4 @@
+import { APP_ID } from './app';
 import { Capacitor } from '@capacitor/core';
 import { APP_VERSION } from '../version';
 
@@ -77,7 +78,7 @@ export async function configureBackgroundUpdates(enabled: boolean) {
   if (!native()) return;
   try {
     const { BackgroundRunner } = await import('@capacitor/background-runner');
-    await BackgroundRunner.dispatchEvent({ label: 'com.cutvid.app.update', event: 'configure', details: { version: APP_VERSION, enabled } });
+    await BackgroundRunner.dispatchEvent({ label: `${APP_ID}.update`, event: 'configure', details: { version: APP_VERSION, enabled } });
   } catch {
     /* not available on this device */
   }

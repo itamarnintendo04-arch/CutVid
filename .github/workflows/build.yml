@@ -67,6 +67,7 @@ jobs:
           body: |
             Direct downloads:
             - **iPhone / iPad** – `CutVid-ios-unsigned.ipa` (install with Sideloadly or AltStore)
+            - **iPad (computer layout)** – `CutVid-Pad-unsigned.ipa` – CutVid Pad
             - **Android** – `CutVid-android.apk`
             - **Windows** – `CutVid-setup.exe` or `CutVid-portable.exe`
             - **macOS** – `CutVid-mac-arm64.dmg` (Apple Silicon) or `CutVid-mac-x64.dmg` (Intel)
@@ -148,12 +149,21 @@ jobs:
           files: release/*.dmg
           fail_on_unmatched_files: true
 
+  # Two apps from the same code: CutVid (iPhone + iPad, phone layout on small screens) and
+  # CutVid Pad (iPad only, always the computer layout, bundle ID com.cutvid.pad).
   ios:
-    name: iOS (unsigned IPA)
+    name: ${{ matrix.label }}
     needs: prepare
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: 'iOS (unsigned IPA)', pad: '', file: CutVid-ios-unsigned.ipa }
+          - { label: 'iPad – CutVid Pad (unsigned IPA)', pad: '1', file: CutVid-Pad-unsigned.ipa }
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      CUTVID_PAD: ${{ matrix.pad }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -176,11 +186,11 @@ jobs:
         run: |
           mkdir Payload
           cp -R ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
-          zip -qr CutVid-ios-unsigned.ipa Payload
+          zip -qr "${{ matrix.file }}" Payload
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
-          files: CutVid-ios-unsigned.ipa
+          files: ${{ matrix.file }}
           fail_on_unmatched_files: true
 
   # Once every platform succeeded, the release becomes the one the website's download links use.

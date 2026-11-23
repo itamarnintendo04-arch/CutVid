@@ -8,6 +8,7 @@
 | macOS | Electron | `CutVid-…-mac-arm64.dmg`, `CutVid-…-mac-x64.dmg` |
 | Android | Capacitor | `CutVid-android.apk` |
 | iPhone / iPad | Capacitor | `CutVid-ios-unsigned.ipa` |
+| iPad (פריסת מחשב) – CutVid Pad | Capacitor, `CUTVID_PAD=1` | `CutVid-Pad-unsigned.ipa` |
 | Web | PWA | תיקיית `dist/` |
 
 ## מה יש בעורך

@@ -6,7 +6,9 @@ import { ICON_STYLES } from '../src/lib/appIconStyles.mjs';
 // Alternate app icons the user can pick in Settings (rendered by scripts/render-app-icons.mjs).
 const ALT_ICONS = ICON_STYLES.filter((s) => s.id !== 'Default').map((s) => s.id);
 
-const SCHEME = 'com.cutvid.app';
+// CUTVID_PAD=1 patches the CutVid Pad (iPad-only) project instead.
+const PAD = process.env.CUTVID_PAD === '1';
+const SCHEME = PAD ? 'com.cutvid.pad' : 'com.cutvid.app';
 
 const manifest = 'android/app/src/main/AndroidManifest.xml';
 if (existsSync(manifest)) {
@@ -92,7 +94,7 @@ if (existsSync(plist)) {
   }
   // Background update check: allowed task id + background modes.
   if (!xml.includes('BGTaskSchedulerPermittedIdentifiers')) {
-    const entry = `\t<key>BGTaskSchedulerPermittedIdentifiers</key>\n\t<array>\n\t\t<string>com.cutvid.app.update</string>\n\t</array>\n\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>fetch</string>\n\t\t<string>processing</string>\n\t</array>\n`;
+    const entry = `\t<key>BGTaskSchedulerPermittedIdentifiers</key>\n\t<array>\n\t\t<string>${SCHEME}.update</string>\n\t</array>\n\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>fetch</string>\n\t\t<string>processing</string>\n\t</array>\n`;
     const end = xml.lastIndexOf('</dict>');
     xml = xml.slice(0, end) + entry + xml.slice(end);
     writeFileSync(plist, xml);
@@ -181,5 +183,25 @@ if (existsSync(catalog) && existsSync(pbx)) {
     proj = proj.replace(anchor, (line, tabs) => `${line}${tabs}ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "${ALT_ICONS.join(' ')}";\n${tabs}ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;\n`);
     writeFileSync(pbx, proj);
     console.log(`ios: ${ALT_ICONS.length} alternate icons declared`);
+  }
+}
+
+// CutVid Pad runs on iPad only (TARGETED_DEVICE_FAMILY 2), in every orientation so iPad multitasking works.
+if (PAD && existsSync(pbx)) {
+  let proj = readFileSync(pbx, 'utf8');
+  const before = proj;
+  proj = proj.replace(/TARGETED_DEVICE_FAMILY = "?[0-9,]+"?;/g, 'TARGETED_DEVICE_FAMILY = 2;');
+  if (proj !== before) {
+    writeFileSync(pbx, proj);
+    console.log('ios: CutVid Pad targets iPad only');
+  }
+}
+if (PAD && existsSync(plist)) {
+  let xml = readFileSync(plist, 'utf8');
+  if (!xml.includes('UISupportedInterfaceOrientations~ipad')) {
+    const entry = `\t<key>UISupportedInterfaceOrientations~ipad</key>\n\t<array>\n\t\t<string>UIInterfaceOrientationPortrait</string>\n\t\t<string>UIInterfaceOrientationPortraitUpsideDown</string>\n\t\t<string>UIInterfaceOrientationLandscapeLeft</string>\n\t\t<string>UIInterfaceOrientationLandscapeRight</string>\n\t</array>\n`;
+    const end = xml.lastIndexOf('</dict>');
+    writeFileSync(plist, xml.slice(0, end) + entry + xml.slice(end));
+    console.log('ios: iPad orientations added');
   }
 }

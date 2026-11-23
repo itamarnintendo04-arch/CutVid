@@ -417,3 +417,10 @@ h2.with-status { display: flex; align-items: center; gap: 10px; }
 .ai-signin p { margin: 0; }
 .tl-toolbar .kf-tool.animated { color: var(--accent); }
 .tl-toolbar .kf-tool.on { color: var(--accent-2); }
+
+/* Narrow computer layout (small windows, CutVid Pad in portrait): preview on top, library and
+   inspector side by side under it, timeline at the bottom. CutVid Pad's build lowers 861px to 0. */
+@media (min-width: 861px) and (max-width: 1000px) {
+  .app { grid-template: 'top top' 48px 'center center' minmax(0, 36%) 'left right' minmax(0, 1fr) 'bottom bottom' minmax(200px, 30%) / minmax(0, 1fr) minmax(0, 1fr); }
+  .left { border-top: 1px solid var(--line); }
+}

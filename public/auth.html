@@ -38,6 +38,7 @@
         var tail = (query ? '?' + query : '') + location.hash;
         var targets = {
           app: 'com.cutvid.app://auth',
+          pad: 'com.cutvid.pad://auth',
           desktop: 'http://127.0.0.1:47823/callback',
         };
         var failed = params.get('error_description') || params.get('error');
@@ -66,7 +67,7 @@
         var url = targets[to] + tail;
         open.href = url;
         open.hidden = false;
-        if (to === 'app') document.getElementById('hint').hidden = false;
+        if (to === 'app' || to === 'pad') document.getElementById('hint').hidden = false;
         if (to === 'desktop') {
           title.textContent = failed ? title.textContent : 'Finishing sign-in on this computer…';
           text.textContent = failed || 'CutVid must be open on this computer. You can close this tab afterwards.';

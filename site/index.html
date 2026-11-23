@@ -109,9 +109,15 @@
           <div class="dl">
             <div class="card" data-os="ios">
               <span class="tag">Your device</span>
-              <h3>iPhone and iPad</h3>
+              <h3>iPhone</h3>
               <p>Installed with Sideloadly or AltStore.</p>
               <div class="links"><a class="btn" data-file="CutVid-ios-unsigned.ipa">Download IPA</a></div>
+            </div>
+            <div class="card" data-os="ipad">
+              <span class="tag">Your device</span>
+              <h3>iPad – CutVid Pad</h3>
+              <p>The computer layout, made for iPad. Installed with Sideloadly or AltStore.</p>
+              <div class="links"><a class="btn" data-file="CutVid-Pad-unsigned.ipa">Download CutVid Pad</a></div>
             </div>
             <div class="card" data-os="android">
               <span class="tag">Your device</span>
@@ -146,7 +152,7 @@
           <h2>How to install</h2>
           <p class="sub">CutVid is not in the app stores yet, so the first install takes a few extra taps.</p>
           <div class="grid">
-            <div class="card"><h3>iPhone and iPad</h3><ol><li>Install <a href="https://sideloadly.io" rel="noopener">Sideloadly</a> on a computer.</li><li>Connect your iPhone with a cable and drag the IPA into Sideloadly.</li><li>Enter your Apple ID and press Start.</li><li>On the iPhone: Settings → General → VPN &amp; Device Management → trust your Apple ID.</li></ol></div>
+            <div class="card"><h3>iPhone and iPad</h3><ol><li>Install <a href="https://sideloadly.io" rel="noopener">Sideloadly</a> on a computer.</li><li>Connect your iPhone or iPad with a cable and drag the IPA into Sideloadly (on iPad, CutVid Pad gives you the computer layout).</li><li>Enter your Apple ID and press Start.</li><li>On the device: Settings → General → VPN &amp; Device Management → trust your Apple ID.</li></ol></div>
             <div class="card"><h3>Android</h3><ol><li>Open the downloaded APK.</li><li>If asked, allow your browser to install apps.</li><li>Tap Install.</li></ol></div>
             <div class="card"><h3>Windows</h3><ol><li>Run the installer.</li><li>If SmartScreen appears, choose More info → Run anyway.</li></ol></div>
             <div class="card"><h3>Mac</h3><ol><li>Open the DMG and drag CutVid to Applications.</li><li>The first time, right-click CutVid and choose Open.</li></ol></div>
@@ -184,7 +190,7 @@
         a.href = RELEASES + a.getAttribute('data-file');
       });
       var ua = navigator.userAgent;
-      var os = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ios' : /Android/.test(ua) ? 'android' : /Windows/.test(ua) ? 'windows' : /Macintosh/.test(ua) ? 'mac' : '';
+      var os = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ipad' : /iPhone|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : /Windows/.test(ua) ? 'windows' : /Macintosh/.test(ua) ? 'mac' : '';
       var mine = os && document.querySelector('[data-os="' + os + '"]');
       if (mine) {
         mine.classList.add('mine');

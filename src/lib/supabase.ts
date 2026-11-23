@@ -1,3 +1,4 @@
+import { APP_ID, IS_PAD } from './app';
 import { useEffect, useState } from 'react';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Project } from '../types';
@@ -38,7 +39,7 @@ declare global {
   }
 }
 
-export const NATIVE_REDIRECT = 'com.cutvid.app://auth';
+export const NATIVE_REDIRECT = `${APP_ID}://auth`;
 export const DESKTOP_REDIRECT = 'http://127.0.0.1:47823/callback';
 
 /** True after a password-reset link was opened; the cloud dialog then asks for a new password. */
@@ -101,7 +102,7 @@ export const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) |
 export function redirectUrl(): string {
   const native = Capacitor.isNativePlatform();
   const desktop = !!window.cutvidAuth;
-  if (native) return SITE_URL ? `${SITE_URL}/callback?to=app` : NATIVE_REDIRECT;
+  if (native) return SITE_URL ? `${SITE_URL}/callback?to=${IS_PAD ? 'pad' : 'app'}` : NATIVE_REDIRECT;
   if (desktop) return SITE_URL ? `${SITE_URL}/callback?to=desktop` : DESKTOP_REDIRECT;
   return location.origin + location.pathname;
 }
@@ -176,7 +177,7 @@ export async function sendSignInLink(email: string) {
   awaitDesktopLink();
 }
 
-/** iOS / Android: handle com.cutvid.app:// links (Google sign-in, password reset). */
+/** iOS / Android: handle com.cutvid.app:// (or com.cutvid.pad://) links (Google sign-in, password reset). */
 export async function initNativeAuth() {
   if (!Capacitor.isNativePlatform()) return;
   const { App } = await import('@capacitor/app');

@@ -1,3 +1,4 @@
+import { APP_NAME } from '../lib/app';
 import { useEffect, useState } from 'react';
 import { Bell, Clapperboard, CloudAlert, CloudCheck, FolderOpen, MessageSquareText, Plus, RefreshCw, Settings, Trash2, X } from 'lucide-react';
 import { SettingsPanel } from './Panels';
@@ -90,7 +91,7 @@ export function Home() {
       <header className="home-top">
         <div className="brand">
           <img src="./icon.svg" alt="" width={32} height={32} />
-          <b>CutVid</b>
+          <b>{APP_NAME}</b>
         </div>
       </header>
 
