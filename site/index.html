@@ -3,118 +3,340 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0b0c10" />
-    <meta name="description" content="CutVid is a video editor for iPhone, Android, Windows and Mac: multi-track timeline, keyframes with graphs, effects, overlays, text styles and an AI assistant." />
+    <meta name="theme-color" content="#08090d" />
+    <meta name="description" content="CutVid is a free video editor for iPhone, iPad, Android, Windows and Mac: multi-track timeline, keyframes with graphs, effects, overlays, styled text and an AI assistant." />
+    <meta property="og:title" content="CutVid – edit video on any device" />
+    <meta property="og:description" content="A full video editor for iPhone, iPad, Android, Windows and Mac." />
+    <meta property="og:image" content="https://cutvid.vercel.app/screenshot.jpg" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
-    <title>CutVid – video editor for iPhone, Android, Windows and Mac</title>
+    <title>CutVid – video editor for every device</title>
     <script src="./links.js"></script>
     <style>
-      :root { --bg: #0b0c10; --panel: #14161c; --panel-2: #1b1e26; --line: #262a35; --text: #e8eaf0; --muted: #9499a8; --accent: #7c5cff; --accent-2: #19d3c5; color-scheme: dark; }
+      :root {
+        --bg: #08090d; --panel: #12141b; --panel-2: #191c25; --line: #252937; --line-2: #343a4c;
+        --text: #eef0f6; --muted: #959bad; --accent: #7c5cff; --accent-2: #19d3c5; --pink: #ff5c9a;
+        --grad: linear-gradient(100deg, #8b6cff 0%, #5b8cff 45%, #19d3c5 100%);
+        color-scheme: dark;
+      }
       * { box-sizing: border-box; }
       html { scroll-behavior: smooth; }
-      body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
       a { color: var(--accent-2); }
-      .wrap { width: min(1080px, 100% - 40px); margin: 0 auto; }
-      header { position: sticky; top: 0; z-index: 5; background: rgba(11, 12, 16, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
-      header .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
-      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; color: var(--text); text-decoration: none; }
-      .brand img { border-radius: 8px; }
-      nav { margin-inline-start: auto; display: flex; gap: 18px; }
-      nav a { color: var(--muted); text-decoration: none; font-size: 15px; }
+      img { max-width: 100%; }
+      .wrap { width: min(1140px, 100% - 32px); margin: 0 auto; }
+
+      /* header */
+      header { position: sticky; top: 0; z-index: 10; background: rgba(8, 9, 13, 0.72); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+      header .wrap { display: flex; align-items: center; gap: 18px; height: 64px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 19px; color: var(--text); text-decoration: none; letter-spacing: -0.01em; }
+      .brand img { border-radius: 9px; }
+      nav { margin-inline-start: auto; display: flex; align-items: center; gap: 22px; }
+      nav a { color: var(--muted); text-decoration: none; font-size: 15px; transition: color 0.15s; }
       nav a:hover { color: var(--text); }
-      .hero { padding: 72px 0 40px; text-align: center; }
-      h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.08; margin: 0 0 18px; letter-spacing: -0.02em; text-wrap: balance; }
-      h1 span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-      .lead { color: var(--muted); font-size: clamp(16px, 2.2vw, 20px); max-width: 640px; margin: 0 auto 28px; text-wrap: pretty; }
-      .btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; padding: 13px 24px; border-radius: 12px; border: 1px solid var(--accent); cursor: pointer; font: inherit; font-weight: 600; }
-      .btn:hover { background: #8d70ff; }
-      .btn.ghost { background: var(--panel-2); border-color: var(--line); color: var(--text); }
-      .btn.ghost:hover { border-color: #3a4050; background: #222632; }
-      .shot { margin: 44px auto 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
-      .shot img { display: block; width: 100%; height: auto; }
-      section { padding: 64px 0; }
-      h2 { font-size: clamp(24px, 3.4vw, 34px); margin: 0 0 8px; letter-spacing: -0.01em; }
-      .sub { color: var(--muted); margin: 0 0 28px; max-width: 620px; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
-      .card h3 { margin: 0 0 6px; font-size: 17px; }
-      .card p { margin: 0; color: var(--muted); font-size: 15px; }
-      .dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-      .dl .card { display: flex; flex-direction: column; gap: 10px; }
-      .dl .card.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-      .dl .tag { align-self: flex-start; font-size: 11.5px; font-weight: 600; color: var(--accent-2); border: 1px solid var(--accent-2); border-radius: 999px; padding: 1px 9px; visibility: hidden; }
+      nav a.cta { color: #fff; background: var(--accent); padding: 8px 16px; border-radius: 999px; font-weight: 600; }
+      nav a.cta:hover { background: #8d70ff; }
+
+      /* buttons */
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; background: var(--accent); color: #fff; text-decoration: none; font: inherit; font-weight: 650; padding: 13px 24px; border-radius: 14px; border: 1px solid transparent; cursor: pointer; transition: transform 0.15s, box-shadow 0.2s, background 0.2s; }
+      .btn:hover { background: #8d70ff; transform: translateY(-1px); box-shadow: 0 10px 30px rgba(124, 92, 255, 0.35); }
+      .btn.big { padding: 16px 30px; font-size: 17px; border-radius: 16px; box-shadow: 0 14px 40px rgba(124, 92, 255, 0.35); }
+      .btn.ghost { background: rgba(255, 255, 255, 0.04); border-color: var(--line-2); color: var(--text); }
+      .btn.ghost:hover { background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+      .btn svg { width: 18px; height: 18px; flex: none; }
+      .btn:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visible, .star:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+
+      /* hero */
+      .hero { position: relative; padding: 84px 0 40px; text-align: center; isolation: isolate; }
+      .aurora { position: absolute; inset: -160px 0 auto; height: 760px; z-index: -1; pointer-events: none; overflow: hidden; }
+      .aurora span { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.55; animation: drift 18s ease-in-out infinite alternate; }
+      .aurora span:nth-child(1) { width: 560px; height: 420px; left: 8%; top: 120px; background: #6b4dff; }
+      .aurora span:nth-child(2) { width: 520px; height: 380px; right: 6%; top: 60px; background: #13b5aa; animation-delay: -6s; }
+      .aurora span:nth-child(3) { width: 420px; height: 320px; left: 40%; top: 300px; background: #c23b7a; opacity: 0.32; animation-delay: -12s; }
+      @keyframes drift { to { transform: translate(40px, 30px) scale(1.12); } }
+      .grid-bg { position: absolute; inset: 0 0 auto; height: 720px; z-index: -1; background-image: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%); }
+      .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line-2); color: var(--text); font-size: 14px; text-decoration: none; margin-bottom: 26px; }
+      .pill b { background: var(--grad); color: #0b0c10; font-size: 12px; padding: 2px 9px; border-radius: 999px; }
+      h1 { font-size: clamp(40px, 7.4vw, 84px); line-height: 1.02; margin: 0 auto 22px; letter-spacing: -0.035em; max-width: 900px; text-wrap: balance; font-weight: 800; }
+      .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .lead { color: var(--muted); font-size: clamp(17px, 2.2vw, 21px); max-width: 660px; margin: 0 auto 34px; text-wrap: pretty; }
+      .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .platforms { display: flex; gap: 8px 20px; justify-content: center; flex-wrap: wrap; margin-top: 26px; color: var(--muted); font-size: 14px; }
+      .platforms span { display: inline-flex; align-items: center; gap: 7px; }
+      .platforms svg { width: 16px; height: 16px; opacity: 0.85; }
+
+      /* device showcase */
+      .showcase { position: relative; margin: 64px auto 0; max-width: 1060px; padding-bottom: 40px; }
+      .laptop { position: relative; border-radius: 18px; padding: 10px; background: linear-gradient(180deg, #2a2f3e, #151821); box-shadow: 0 40px 120px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.07), 0 0 90px rgba(124, 92, 255, 0.18); transform: perspective(1800px) rotateX(6deg); transform-origin: 50% 100%; }
+      .laptop img { display: block; width: 100%; height: auto; border-radius: 10px; }
+      .phone { position: absolute; right: -14px; bottom: -6px; width: min(23%, 230px); border-radius: 34px; padding: 8px; background: linear-gradient(180deg, #2e3445, #12141b); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.1); }
+      .phone img { display: block; width: 100%; height: auto; border-radius: 27px; }
+      .chip { position: absolute; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 14px; background: rgba(18, 20, 27, 0.86); border: 1px solid var(--line-2); backdrop-filter: blur(10px); font-size: 14px; font-weight: 600; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); animation: bob 6s ease-in-out infinite; }
+      .chip i { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-style: normal; }
+      .chip.c1 { left: -18px; top: 18%; }
+      .chip.c1 i { background: rgba(124, 92, 255, 0.2); color: #b4a3ff; }
+      .chip.c2 { left: 6%; bottom: 4%; animation-delay: -3s; }
+      .chip.c2 i { background: rgba(25, 211, 197, 0.18); color: var(--accent-2); }
+      @keyframes bob { 50% { transform: translateY(-8px); } }
+
+      /* stats */
+      .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; margin-top: 30px; }
+      .stats div { background: var(--panel); padding: 22px 18px; text-align: center; }
+      .stats b { display: block; font-size: 32px; letter-spacing: -0.02em; }
+      .stats span { color: var(--muted); font-size: 14px; }
+
+      /* sections */
+      section { padding: 96px 0; position: relative; }
+      .eyebrow { display: inline-block; color: var(--accent-2); font-weight: 700; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
+      h2 { font-size: clamp(30px, 4.4vw, 48px); line-height: 1.08; margin: 0 0 14px; letter-spacing: -0.03em; text-wrap: balance; }
+      .sub { color: var(--muted); margin: 0 0 40px; max-width: 640px; font-size: 18px; text-wrap: pretty; }
+      .center { text-align: center; }
+      .center .sub { margin-inline: auto; }
+
+      /* features */
+      .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .feature { position: relative; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); border-radius: 20px; padding: 26px; overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
+      .feature:hover { transform: translateY(-3px); border-color: var(--line-2); }
+      .feature::after { content: ""; position: absolute; inset: auto -40% -60% auto; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(124, 92, 255, 0.16), transparent 70%); pointer-events: none; }
+      .feature .ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 18px; background: rgba(124, 92, 255, 0.14); color: #b4a3ff; border: 1px solid rgba(124, 92, 255, 0.25); }
+      .feature:nth-child(3n + 2) .ic { background: rgba(25, 211, 197, 0.12); color: var(--accent-2); border-color: rgba(25, 211, 197, 0.25); }
+      .feature:nth-child(3n) .ic { background: rgba(255, 92, 154, 0.12); color: #ff8ab6; border-color: rgba(255, 92, 154, 0.25); }
+      .feature .ic svg { width: 22px; height: 22px; }
+      .feature h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -0.01em; }
+      .feature p { margin: 0; color: var(--muted); font-size: 15.5px; }
+      .feature.wide { grid-column: span 2; }
+
+      /* split sections */
+      .split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+      .ticks { list-style: none; padding: 0; margin: 0 0 30px; display: grid; gap: 12px; }
+      .ticks li { display: flex; gap: 12px; color: var(--text); }
+      .ticks li::before { content: ""; flex: none; width: 22px; height: 22px; margin-top: 2px; border-radius: 7px; background: rgba(25, 211, 197, 0.15) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2319d3c5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 14px no-repeat; }
+      .chat { background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); border-radius: 24px; padding: 22px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 0 80px rgba(124, 92, 255, 0.12); }
+      .chat-head { display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 18px; }
+      .chat-head i { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--grad); color: #0b0c10; font-style: normal; }
+      .msg { max-width: 86%; padding: 12px 15px; border-radius: 16px; margin-bottom: 10px; font-size: 15px; }
+      .msg.me { margin-inline-start: auto; background: var(--accent); color: #fff; border-bottom-right-radius: 5px; }
+      .msg.ai { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
+      .msg.ai small { display: block; color: var(--accent-2); font-weight: 600; margin-top: 6px; }
+      .mini-tl { display: grid; gap: 6px; margin-top: 14px; }
+      .mini-tl span { height: 20px; border-radius: 6px; }
+      .pad-frame { border-radius: 26px; padding: 10px; background: linear-gradient(180deg, #2a2f3e, #12141b); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08); }
+      .pad-frame img { display: block; width: 100%; height: auto; border-radius: 18px; }
+
+      /* download */
+      #download { background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124, 92, 255, 0.14), transparent 70%); }
+      .app-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; font-size: 22px; margin: 40px 0 16px; letter-spacing: -0.01em; }
+      .app-title span { color: var(--muted); font-weight: 400; font-size: 16px; }
+      .dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+      .dl .card { position: relative; display: flex; flex-direction: column; gap: 8px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); border-radius: 20px; padding: 22px; transition: border-color 0.2s, transform 0.2s; }
+      .dl .card:hover { border-color: var(--line-2); transform: translateY(-2px); }
+      .dl .card h3 { margin: 4px 0 0; font-size: 19px; }
+      .dl .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+      .dl .card .os { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line-2); }
+      .dl .card .os svg { width: 21px; height: 21px; }
+      .dl .card.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 20px 60px rgba(124, 92, 255, 0.25); }
+      .dl .tag { position: absolute; top: 18px; right: 18px; font-size: 12px; font-weight: 700; color: #0b0c10; background: var(--grad); border-radius: 999px; padding: 3px 10px; visibility: hidden; }
       .dl .mine .tag { visibility: visible; }
-      .dl .links { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
-      .dl .btn { justify-content: center; padding: 11px 14px; }
-      .note { font-size: 13.5px; color: var(--muted); margin: 0; }
-      .app-title { font-size: 19px; margin: 26px 0 12px; }
-      .app-title span { color: var(--muted); font-weight: 400; font-size: 15px; }
+      .dl .links { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top: 12px; }
+      .dl .btn { width: 100%; padding: 12px 14px; }
       .dl .card.na { opacity: 0.55; }
-      .dl .btn[aria-disabled="true"] { pointer-events: none; background: var(--panel-2); border-color: var(--line); color: var(--muted); }
-      ol { margin: 0; padding-inline-start: 20px; color: var(--muted); }
-      ol li { margin-bottom: 6px; }
-      form { display: flex; flex-direction: column; gap: 12px; max-width: 560px; }
-      textarea, input[type="email"] { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; color: var(--text); font: inherit; width: 100%; }
+      .dl .btn[aria-disabled="true"] { pointer-events: none; background: var(--panel-2); border-color: var(--line); color: var(--muted); box-shadow: none; }
+      .note { font-size: 13.5px; color: var(--muted); margin: 0; }
+
+      /* install */
+      .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+      .step { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 24px; }
+      .step h3 { margin: 0 0 12px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+      .step h3 svg { width: 20px; height: 20px; color: var(--accent-2); }
+      .step ol { margin: 0; padding-inline-start: 20px; color: var(--muted); font-size: 15px; }
+      .step li { margin-bottom: 7px; }
+      .step li::marker { color: var(--accent); font-weight: 700; }
+
+      /* feedback */
+      .fb-card { display: grid; grid-template-columns: 1fr 1.2fr; gap: 40px; background: linear-gradient(135deg, rgba(124, 92, 255, 0.12), rgba(25, 211, 197, 0.06)); border: 1px solid var(--line-2); border-radius: 28px; padding: 44px; }
+      form { display: flex; flex-direction: column; gap: 14px; }
+      label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 14px; }
+      textarea, input[type="email"] { background: rgba(8, 9, 13, 0.7); border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 14px; color: var(--text); font: inherit; width: 100%; }
       textarea { min-height: 130px; resize: vertical; }
-      textarea:focus-visible, input:focus-visible, .btn:focus-visible, .star:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       .stars { display: flex; gap: 2px; }
-      .star { background: none; border: 0; padding: 2px 4px; font-size: 30px; line-height: 1; color: #4a5060; cursor: pointer; }
+      .star { background: none; border: 0; padding: 2px 4px; font-size: 32px; line-height: 1; color: #3d4354; cursor: pointer; transition: color 0.15s, transform 0.15s; }
+      .star:hover { transform: scale(1.12); }
       .star.on { color: #ffd84a; }
       #fb-status { margin: 0; min-height: 1.5em; }
       .ok { color: #3ddc97; font-weight: 600; }
       .err { color: #ff5c7a; }
-      footer { border-top: 1px solid var(--line); padding: 26px 0 40px; color: var(--muted); font-size: 14px; }
-      @media (max-width: 640px) { nav a:not(.keep) { display: none; } .hero { padding-top: 44px; } section { padding: 44px 0; } }
+
+      /* footer */
+      footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--muted); font-size: 14px; }
+      footer .wrap { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+      footer nav { gap: 18px; }
+      footer a { color: var(--muted); text-decoration: none; }
+      footer a:hover { color: var(--text); }
+
+      /* reveal on scroll */
+      .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
+      .reveal.in { opacity: 1; transform: none; }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+        .reveal { opacity: 1; transform: none; }
+        html { scroll-behavior: auto; }
+      }
+
+      @media (max-width: 980px) {
+        .features { grid-template-columns: 1fr 1fr; }
+        .feature.wide { grid-column: span 2; }
+        .steps { grid-template-columns: 1fr 1fr; }
+        .split, .fb-card { grid-template-columns: 1fr; gap: 32px; }
+      }
+      @media (max-width: 640px) {
+        header .wrap { height: 58px; }
+        nav a:not(.cta) { display: none; }
+        .hero { padding-top: 54px; }
+        section { padding: 64px 0; }
+        .features, .steps { grid-template-columns: 1fr; }
+        .feature.wide { grid-column: auto; }
+        .stats { grid-template-columns: 1fr 1fr; }
+        .phone { width: 34%; right: -6px; bottom: -18px; border-radius: 24px; padding: 6px; }
+        .phone img { border-radius: 19px; }
+        .chip { display: none; }
+        .laptop { transform: none; padding: 6px; border-radius: 12px; }
+        .fb-card { padding: 26px 20px; }
+      }
     </style>
   </head>
   <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-apple" viewBox="0 0 24 24"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.4-3.9zM14 5.5c.7-.8 1.1-1.9 1-3-1 .1-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z" /></symbol>
+        <symbol id="i-android" viewBox="0 0 24 24"><path fill="currentColor" d="M17.6 9.48 19.44 6.3a.38.38 0 0 0-.14-.52.38.38 0 0 0-.52.14l-1.86 3.22a11.4 11.4 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38l1.84 3.18C3.7 10.96 2 13.7 2 16.8h20c0-3.1-1.7-5.84-4.4-7.32zM7.4 14.2a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zm9.2 0a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8z" /></symbol>
+        <symbol id="i-windows" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5.5 10.4 4.5v7H3zm8.4-1.1L21 3v8.5h-9.6zM3 12.5h7.4v7L3 18.5zm8.4 0H21V21l-9.6-1.4z" /></symbol>
+        <symbol id="i-tablet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" /><path d="M12 18h.01" /></symbol>
+        <symbol id="i-mac" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16" /></symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6" /></symbol>
+      </defs>
+    </svg>
+
     <header>
       <div class="wrap">
-        <a class="brand" href="./"><img src="./icon.svg" width="30" height="30" alt="" />CutVid</a>
-        <nav>
+        <a class="brand" href="./"><img src="./icon.svg" width="32" height="32" alt="" />CutVid</a>
+        <nav aria-label="Main">
           <a href="#features">Features</a>
-          <a href="#install">How to install</a>
-          <a href="#feedback">Feedback</a>
+          <a href="#ai">AI</a>
+          <a href="#install">Install</a>
           <a href="/developers">Developers</a>
-          <a class="keep" href="#download">Download</a>
+          <a class="cta" href="#download">Download</a>
         </nav>
       </div>
     </header>
 
     <main>
-      <div class="wrap hero">
-        <h1>Edit video on <span>any device</span></h1>
-        <p class="lead">CutVid is a full video editor for iPhone, Android, Windows and Mac: a multi-track timeline, keyframes with graphs, effects, overlays, styled text and an AI assistant that builds scenes for you.</p>
-        <a class="btn" id="hero-dl" href="#download">Download CutVid</a>
-        <div class="shot"><img src="./screenshot.jpg" width="1800" height="1075" alt="The CutVid editor: a preview with glowing text, a keyframes panel with graph presets, and a four-layer timeline." /></div>
+      <div class="hero">
+        <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="grid-bg" aria-hidden="true"></div>
+        <div class="wrap">
+          <a class="pill" href="#download"><b>New</b> CutVid Pad for iPad and Android tablets →</a>
+          <h1>Edit video like a pro, <span class="grad">on any device</span></h1>
+          <p class="lead">A full video editor for iPhone, iPad, Android, Windows and Mac. Multi-track timeline, keyframes with graphs, effects, styled text — and an AI that builds scenes for you.</p>
+          <div class="cta-row">
+            <a class="btn big" id="hero-dl" href="#download"><svg><use href="#i-download" /></svg>Download free</a>
+            <a class="btn big ghost" href="#features">See what it can do</a>
+          </div>
+          <div class="platforms">
+            <span><svg><use href="#i-apple" /></svg>iPhone &amp; iPad</span>
+            <span><svg><use href="#i-android" /></svg>Android</span>
+            <span><svg><use href="#i-windows" /></svg>Windows</span>
+            <span><svg><use href="#i-mac" /></svg>Mac</span>
+          </div>
+
+          <div class="showcase">
+            <div class="laptop"><img src="./screenshot.jpg" width="1800" height="1075" alt="The CutVid editor on a computer: a preview with glowing text, a keyframes panel with graph presets, and a four-layer timeline." /></div>
+            <div class="phone"><img src="./phone.jpg" width="585" height="996" alt="CutVid on a phone: a gradient title scene and the timeline." loading="lazy" /></div>
+            <div class="chip c1" aria-hidden="true"><i>◆</i>Keyframe added</div>
+            <div class="chip c2" aria-hidden="true"><i>✦</i>Exported in 4K</div>
+          </div>
+
+          <div class="stats reveal">
+            <div><b class="grad">4K</b><span>export, your frame rate</span></div>
+            <div><b class="grad">25</b><span>ready-made motion graphs</span></div>
+            <div><b class="grad">19</b><span>transitions</span></div>
+            <div><b class="grad">14</b><span>languages</span></div>
+          </div>
+        </div>
       </div>
 
       <section id="features">
         <div class="wrap">
-          <h2>Everything on one timeline</h2>
-          <p class="sub">The same editor and the same projects on every platform.</p>
-          <div class="grid">
-            <div class="card"><h3>Multi-track editing</h3><p>Unlimited video and audio layers. Trim, split, snap, duplicate, undo.</p></div>
-            <div class="card"><h3>Keyframes and graphs</h3><p>Animate position, size, rotation and opacity with 25 ready-made curves or draw your own.</p></div>
-            <div class="card"><h3>Effects and transitions</h3><p>Glitch, RGB split, shake, pixelate, film grain and 19 in/out transitions.</p></div>
-            <div class="card"><h3>Text that stands out</h3><p>16 styles, glow, outlines and 21 built-in fonts, including Hebrew.</p></div>
-            <div class="card"><h3>Elements and overlays</h3><p>Shapes, gradients, stickers, light leaks, letterbox bars, vignettes and blend modes.</p></div>
-            <div class="card"><h3>Green screen and filters</h3><p>Chroma key, 14 colour presets and full manual control.</p></div>
-            <div class="card"><h3>CutVid AI</h3><p>Describe an intro, a lower third or a countdown and the assistant builds it on your timeline.</p></div>
-            <div class="card"><h3>Export up to 4K</h3><p>MP4 at the resolution and frame rate you pick, saved straight to your gallery.</p></div>
-            <div class="card"><h3>Your account</h3><p>Sign in with Google or email to back up projects and keep your own presets.</p></div>
+          <div class="center reveal">
+            <span class="eyebrow">Features</span>
+            <h2>Everything on one timeline</h2>
+            <p class="sub">The same editor and the same projects on every device — they sync automatically when you sign in.</p>
+          </div>
+          <div class="features">
+            <div class="feature reveal wide"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1" /><rect x="3" y="10" width="12" height="4" rx="1" /><rect x="7" y="16" width="14" height="4" rx="1" /></svg></div><h3>Multi-track editing</h3><p>Unlimited video and audio layers. Trim, split, snap, duplicate and undo — with a magnetic timeline that feels right on a phone and on a computer.</p></div>
+            <div class="feature reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 22 12 12 22 2 12z" /></svg></div><h3>Keyframes and graphs</h3><p>Animate position, size, rotation and opacity with 25 curves or draw your own.</p></div>
+            <div class="feature reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z" /></svg></div><h3>Effects and transitions</h3><p>Motion blur, glitch, RGB split, shake, pixelate, film grain and 19 transitions.</p></div>
+            <div class="feature reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16" /></svg></div><h3>Text that stands out</h3><p>16 styles, glow, outlines and 21 built-in fonts, including Hebrew and Arabic.</p></div>
+            <div class="feature reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z" /><path d="m2 17 10 5 10-5M2 12l10 5 10-5" /></svg></div><h3>Overlays and elements</h3><p>Your own photos and videos as overlays, light leaks, shapes, stickers and blend modes.</p></div>
+            <div class="feature reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" /></svg></div><h3>Green screen and filters</h3><p>Chroma key, 14 colour presets and full manual control.</p></div>
+            <div class="feature reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16" /></svg></div><h3>Export up to 4K</h3><p>MP4 at the resolution and frame rate you pick, saved straight to your gallery.</p></div>
+            <div class="feature reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 0 0 4.5 12 3.5 3.5 0 0 0 6 19z" /></svg></div><h3>Cloud sync</h3><p>Sign in with Google or email: projects and presets follow you to every device.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="ai">
+        <div class="wrap split">
+          <div class="reveal">
+            <span class="eyebrow">CutVid AI</span>
+            <h2>Describe it. <span class="grad">Watch it appear.</span></h2>
+            <p class="sub">Tell the assistant what you want and it builds it on your timeline — titles, lower thirds, countdowns, animations and transitions. Every change is one undo away.</p>
+            <ul class="ticks">
+              <li>Works with your own clips, text, shapes and effects</li>
+              <li>Keyframes and easing graphs set up for you</li>
+              <li>Notifies you when it finishes editing</li>
+            </ul>
+            <a class="btn ghost" href="#download">Try CutVid AI <svg><use href="#i-arrow" /></svg></a>
+          </div>
+          <div class="chat reveal" aria-hidden="true">
+            <div class="chat-head"><i>✦</i>CutVid AI</div>
+            <div class="msg me">A 5-second intro with the title “Summer Trip”, zooming in on a purple background</div>
+            <div class="msg ai">Done! Added a purple gradient, the title with a glow, and a zoom-in with an ease-out graph.<small>3 changes applied</small>
+              <div class="mini-tl"><span style="background: #c2410c; width: 70%"></span><span style="background: #9333ea; width: 100%"></span></div>
+            </div>
+            <div class="msg me">Make the title come in from the left</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pad">
+        <div class="wrap split">
+          <div class="pad-frame reveal"><img src="./screenshot.jpg" width="1800" height="1075" alt="CutVid Pad: the computer layout on a tablet." loading="lazy" /></div>
+          <div class="reveal">
+            <span class="eyebrow">CutVid Pad</span>
+            <h2>Your tablet, with the full computer layout</h2>
+            <p class="sub">CutVid Pad gives iPad and Android tablets the desktop editor: library, preview, inspector and timeline side by side — in landscape and portrait.</p>
+            <ul class="ticks">
+              <li>Installs next to CutVid as a separate app</li>
+              <li>Same projects, synced through your account</li>
+              <li>Gallery and Files open directly</li>
+            </ul>
+            <a class="btn" href="#download"><svg><use href="#i-download" /></svg>Get CutVid Pad</a>
           </div>
         </div>
       </section>
 
       <section id="download">
         <div class="wrap">
-          <h2>Download</h2>
-          <p class="sub">Free. Pick your device.</p>
-          <h3 class="app-title">CutVid <span>· phones and computers</span></h3>
+          <div class="center reveal">
+            <span class="eyebrow">Download</span>
+            <h2>Free. Pick your device.</h2>
+          </div>
+
+          <h3 class="app-title">CutVid <span>phones and computers</span></h3>
           <div class="dl">
             <div class="card" data-os="ios">
               <span class="tag">Your device</span>
+              <div class="os"><svg><use href="#i-apple" /></svg></div>
               <h3>iPhone</h3>
               <p>iOS 15 or newer.</p>
               <div class="links"><a class="btn" data-file="CutVid-ios-unsigned.ipa" data-install="ios">Download IPA</a></div>
@@ -122,12 +344,14 @@
             </div>
             <div class="card" data-os="android">
               <span class="tag">Your device</span>
+              <div class="os"><svg><use href="#i-android" /></svg></div>
               <h3>Android</h3>
               <p>Android 7 or newer.</p>
               <div class="links"><a class="btn" data-file="CutVid-android.apk">Download APK</a></div>
             </div>
             <div class="card" data-os="windows">
               <span class="tag">Your device</span>
+              <div class="os"><svg><use href="#i-windows" /></svg></div>
               <h3>Windows</h3>
               <p>Windows 10 or 11, 64-bit.</p>
               <div class="links">
@@ -137,6 +361,7 @@
             </div>
             <div class="card" data-os="mac">
               <span class="tag">Your device</span>
+              <div class="os"><svg><use href="#i-mac" /></svg></div>
               <h3>Mac</h3>
               <p>macOS 12 or newer.</p>
               <div class="links">
@@ -146,10 +371,11 @@
             </div>
           </div>
 
-          <h3 class="app-title">CutVid Pad <span>· the computer layout for tablets</span></h3>
+          <h3 class="app-title">CutVid Pad <span>the computer layout for tablets</span></h3>
           <div class="dl">
             <div class="card" data-os="ipad">
               <span class="tag">Your device</span>
+              <div class="os"><svg><use href="#i-tablet" /></svg></div>
               <h3>iPad</h3>
               <p>iPadOS 15 or newer.</p>
               <div class="links"><a class="btn" data-file="CutVid-Pad-unsigned.ipa" data-install="pad">Download IPA</a></div>
@@ -158,6 +384,7 @@
             </div>
             <div class="card" data-os="android">
               <span class="tag">Your device</span>
+              <div class="os"><svg><use href="#i-tablet" /></svg></div>
               <h3>Android tablet</h3>
               <p>Android 7 or newer.</p>
               <div class="links"><a class="btn" data-file="CutVid-Pad-android.apk">Download APK</a></div>
@@ -168,39 +395,57 @@
 
       <section id="install">
         <div class="wrap">
-          <h2>How to install</h2>
-          <p class="sub">CutVid is not in the app stores yet, so the first install takes a few extra taps.</p>
-          <div class="grid">
-            <div class="card"><h3>iPhone and iPad</h3><ol><li>Install <a href="https://sideloadly.io" rel="noopener">Sideloadly</a> on a computer.</li><li>Connect your iPhone or iPad with a cable and drag the IPA into Sideloadly (on iPad, CutVid Pad gives you the computer layout).</li><li>Enter your Apple ID and press Start.</li><li>On the device: Settings → General → VPN &amp; Device Management → trust your Apple ID.</li></ol></div>
-            <div class="card"><h3>Android</h3><ol><li>Open the downloaded APK.</li><li>If asked, allow your browser to install apps.</li><li>Tap Install.</li></ol></div>
-            <div class="card"><h3>Windows</h3><ol><li>Run the installer.</li><li>If SmartScreen appears, choose More info → Run anyway.</li></ol></div>
-            <div class="card"><h3>Mac</h3><ol><li>Open the DMG and drag CutVid to Applications.</li><li>The first time, right-click CutVid and choose Open.</li></ol></div>
+          <div class="center reveal">
+            <span class="eyebrow">Install</span>
+            <h2>Up and running in a minute</h2>
+            <p class="sub">CutVid is not in the app stores yet, so the first install takes a few extra taps.</p>
+          </div>
+          <div class="steps">
+            <div class="step reveal"><h3><svg><use href="#i-apple" /></svg>iPhone &amp; iPad</h3><ol><li>Tap <b>Install</b> and confirm.</li><li>Or download the IPA and install it with <a href="https://sideloadly.io" rel="noopener">Sideloadly</a> or AltStore.</li><li>If asked: Settings → General → VPN &amp; Device Management → trust the developer.</li></ol></div>
+            <div class="step reveal"><h3><svg><use href="#i-android" /></svg>Android</h3><ol><li>Open the downloaded APK.</li><li>If asked, allow your browser to install apps.</li><li>Tap Install.</li></ol></div>
+            <div class="step reveal"><h3><svg><use href="#i-windows" /></svg>Windows</h3><ol><li>Run the installer.</li><li>If SmartScreen appears, choose More info → Run anyway.</li></ol></div>
+            <div class="step reveal"><h3><svg><use href="#i-mac" /></svg>Mac</h3><ol><li>Open the DMG and drag CutVid to Applications.</li><li>The first time, right-click CutVid and choose Open.</li></ol></div>
           </div>
         </div>
       </section>
 
       <section id="feedback">
         <div class="wrap">
-          <h2>Feedback</h2>
-          <p class="sub">What works, what is missing, what is broken? Every note is read.</p>
-          <form id="fb">
-            <div class="stars" role="radiogroup" aria-label="Rating">
-              <button type="button" class="star" data-n="1" role="radio" aria-checked="false" aria-label="1 star">★</button>
-              <button type="button" class="star" data-n="2" role="radio" aria-checked="false" aria-label="2 stars">★</button>
-              <button type="button" class="star" data-n="3" role="radio" aria-checked="false" aria-label="3 stars">★</button>
-              <button type="button" class="star" data-n="4" role="radio" aria-checked="false" aria-label="4 stars">★</button>
-              <button type="button" class="star" data-n="5" role="radio" aria-checked="false" aria-label="5 stars">★</button>
+          <div class="fb-card reveal">
+            <div>
+              <span class="eyebrow">Feedback</span>
+              <h2>Tell us what you think</h2>
+              <p class="sub" style="margin-bottom: 0">What works, what is missing, what is broken? Every note is read.</p>
             </div>
-            <label>Your message<textarea id="fb-msg" maxlength="4000" dir="auto" required></textarea></label>
-            <label>Email for a reply (optional)<input id="fb-email" type="email" autocomplete="email" maxlength="200" /></label>
-            <button class="btn" type="submit" id="fb-send" style="align-self: flex-start">Send feedback</button>
-            <p id="fb-status" role="status"></p>
-          </form>
+            <form id="fb">
+              <div class="stars" role="radiogroup" aria-label="Rating">
+                <button type="button" class="star" data-n="1" role="radio" aria-checked="false" aria-label="1 star">★</button>
+                <button type="button" class="star" data-n="2" role="radio" aria-checked="false" aria-label="2 stars">★</button>
+                <button type="button" class="star" data-n="3" role="radio" aria-checked="false" aria-label="3 stars">★</button>
+                <button type="button" class="star" data-n="4" role="radio" aria-checked="false" aria-label="4 stars">★</button>
+                <button type="button" class="star" data-n="5" role="radio" aria-checked="false" aria-label="5 stars">★</button>
+              </div>
+              <label>Your message<textarea id="fb-msg" maxlength="4000" dir="auto" required></textarea></label>
+              <label>Email for a reply (optional)<input id="fb-email" type="email" autocomplete="email" maxlength="200" /></label>
+              <button class="btn" type="submit" id="fb-send" style="align-self: flex-start">Send feedback</button>
+              <p id="fb-status" role="status"></p>
+            </form>
+          </div>
         </div>
       </section>
     </main>
 
-    <footer><div class="wrap">CutVid · video editing on every device · <a href="/developers">Sign in with CutVid for developers</a></div></footer>
+    <footer>
+      <div class="wrap">
+        <a class="brand" href="./"><img src="./icon.svg" width="26" height="26" alt="" />CutVid</a>
+        <span>Video editing on every device.</span>
+        <nav aria-label="Footer">
+          <a href="#download">Download</a>
+          <a href="/developers">Sign in with CutVid for developers</a>
+          <a href="https://github.com/itamarnintendo04-arch/CutVid" rel="noopener">GitHub</a>
+        </nav>
+      </div>
+    </footer>
 
     <script>
       // ---- downloads: always the newest published build ----
@@ -216,6 +461,7 @@
         if (!url) return;
         a.href = url;
         a.textContent = a.getAttribute('data-install') === 'pad' ? 'Install CutVid Pad' : 'Install CutVid';
+        a.insertAdjacentHTML('afterbegin', '<svg><use href="#i-download" /></svg>');
         var note = a.closest('.card').querySelector('.ipa-note');
         if (note) note.hidden = true;
       });
@@ -284,6 +530,19 @@
           })
           .then(function () { send.disabled = false; });
       });
+    </script>
+    <script>
+      // Fade sections in as they scroll into view.
+      (function () {
+        var items = document.querySelectorAll('.reveal');
+        if (!('IntersectionObserver' in window)) return items.forEach(function (el) { el.classList.add('in'); });
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+          });
+        }, { rootMargin: '0px 0px -8% 0px' });
+        items.forEach(function (el) { io.observe(el); });
+      })();
     </script>
   </body>
 </html>
