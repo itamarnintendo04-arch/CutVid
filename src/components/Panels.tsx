@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Diamond, Save, Smartphone, Trash2 } from 'lucide-react';
+import { Diamond, Save, Smartphone, Trash2, Wand2 } from 'lucide-react';
 import { selectedClip, useStore } from '../store';
 import { LANGUAGES, useT, type TKey } from '../lib/i18n';
 import { chosenLang } from '../lib/lang';
@@ -258,7 +258,16 @@ export function EffectsPanel() {
                 onApply={(data: ClipEffect[]) => updateClip(clip.id, (c) => void (c.effects = data.filter((e) => EFFECT_TYPES.includes(e.type)).map((e) => ({ ...e }))))}
               />
               {(clip.type === 'video' || clip.type === 'image') && (
-                <Section title={t('chroma')} defaultOpen={clip.chroma.enabled}>
+                <Section title={t('chroma')} defaultOpen={clip.chroma.enabled || clip.type === 'image'}>
+                  {clip.type === 'image' && <RemoveBackgroundButton clipId={clip.id} />}
+                  <div className="chip-row">
+                    <button className="chip" onClick={() => updateClip(clip.id, (c) => void (c.chroma = { enabled: true, color: '#00ff00', similarity: 0.35, smoothness: 0.1 }))}>
+                      {t('greenScreen')}
+                    </button>
+                    <button className="chip" onClick={() => updateClip(clip.id, (c) => void (c.chroma = { enabled: true, color: '#0047bb', similarity: 0.3, smoothness: 0.1 }))}>
+                      {t('blueScreen')}
+                    </button>
+                  </div>
                   <div className="row">
                     <Toggle label={t('enabled')} checked={clip.chroma.enabled} onChange={(v) => updateClip(clip.id, (c) => void (c.chroma.enabled = v))} />
                     <label className="field inline">
@@ -669,3 +678,32 @@ function AppIconPicker() {
   );
 }
 
+
+/** Cuts the subject out of a picture with CutVid AI (needs sign-in). */
+function RemoveBackgroundButton({ clipId }: { clipId: string }) {
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const run = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const { removeBackground } = await import('../ai/images');
+      await removeBackground(clipId);
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (/sign in/i.test(msg)) window.dispatchEvent(new Event('cutvid:open-cloud'));
+      setError(msg);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <button className="primary" disabled={busy} onClick={run}>
+        <Wand2 size={15} className={busy ? 'spin' : ''} /> {busy ? t('removingBackground') : t('removeBackground')}
+      </button>
+      <p className="muted small">{error ? <span className="error">{error}</span> : t('removeBackgroundHint')}</p>
+    </>
+  );
+}

@@ -5,6 +5,10 @@
 //   A) ANTHROPIC_API_KEY                      (optional CUTVID_AI_MODEL, default claude-opus-5-5)
 //   B) AI_API_KEY                             a Google AI Studio key: uses Gemini 2.5 Flash.
 //      Set AI_BASE_URL and AI_MODEL as well to use any other OpenAI-compatible provider.
+//
+// Images ({action:"image"}) always use Gemini with AI_API_KEY (a Google AI Studio key): they create a
+// picture from a prompt, or edit a picture that is sent along (e.g. put the subject on pure green so
+// the app's green-screen key can remove the background). Optional AI_IMAGE_MODEL picks the model.
 import Anthropic from 'npm:@anthropic-ai/sdk';
 
 const cors = {
@@ -111,15 +115,80 @@ async function viaOpenAiCompatible(system: string, messages: Msg[]): Promise<str
   throw new Error('The AI provider returned an empty reply');
 }
 
+// ---- images (Gemini) ------------------------------------------------------------------------
+
+const GEMINI_NATIVE = 'https://generativelanguage.googleapis.com/v1beta';
+let imageModel: string | null = null;
+
+/** Newest Gemini model that can return images through generateContent (Imagen models use another API). */
+async function findImageModel(key: string): Promise<string | null> {
+  const res = await fetch(`${GEMINI_NATIVE}/models?pageSize=200`, { headers: { 'x-goog-api-key': key } });
+  const body = await res.json().catch(() => null);
+  const models: { name?: string; supportedGenerationMethods?: string[] }[] = Array.isArray(body?.models) ? body.models : [];
+  const usable = models
+    .filter((m) => /image/.test(m.name ?? '') && !/imagen/.test(m.name ?? '') && (m.supportedGenerationMethods ?? []).includes('generateContent'))
+    .map((m) => normalizeModel(m.name!));
+  const score = (m: string) => Number((m.match(/(\d+(?:\.\d+)?)/) ?? [])[1] ?? 0) * 10 + (/flash/.test(m) ? 2 : 0) - (/preview|exp/.test(m) ? 1 : 0);
+  return usable.sort((a, b) => score(b) - score(a))[0] ?? null;
+}
+
+type ImageIn = { data: string; mime: string };
+
+async function viaGeminiImage(prompt: string, image?: ImageIn): Promise<ImageIn> {
+  const key = (Deno.env.get('AI_API_KEY') ?? '').trim();
+  if (!key) throw new Error('Images need a Google AI Studio key (AI_API_KEY) in Supabase.');
+  const call = (model: string) =>
+    fetch(`${GEMINI_NATIVE}/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }, ...(image ? [{ inline_data: { mime_type: image.mime, data: image.data } }] : [])] }],
+        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+      }),
+    });
+  let model = imageModel ?? normalizeModel(Deno.env.get('AI_IMAGE_MODEL') || 'gemini-2.5-flash-image');
+  let res = await call(model);
+  if (res.status === 404) {
+    const found = await findImageModel(key).catch(() => null);
+    if (!found) throw new Error('No Gemini image model is available for this key.');
+    model = found;
+    res = await call(model);
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(`Image error ${providerError(res.status, body, res.statusText)} (model ${model})`);
+  imageModel = model;
+  const parts: { inlineData?: { mimeType?: string; data?: string }; inline_data?: { mime_type?: string; data?: string }; text?: string }[] =
+    body?.candidates?.[0]?.content?.parts ?? [];
+  for (const part of parts) {
+    const d = part.inlineData ?? (part.inline_data ? { mimeType: part.inline_data.mime_type, data: part.inline_data.data } : undefined);
+    if (d?.data) return { data: d.data, mime: d.mimeType || 'image/png' };
+  }
+  const said = parts.map((x) => x.text ?? '').join(' ').trim();
+  throw new Error(said ? `The model did not return an image: ${said.slice(0, 200)}` : 'The model did not return an image. Try a different description.');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
 
-  let body: { system?: unknown; messages?: unknown };
+  let body: { system?: unknown; messages?: unknown; action?: unknown; prompt?: unknown; image?: { data?: unknown; mime?: unknown } };
   try {
     body = await req.json();
   } catch {
     return json({ error: 'Invalid JSON' }, 400);
+  }
+
+  if (body.action === 'image') {
+    const prompt = typeof body.prompt === 'string' ? body.prompt.trim().slice(0, 4000) : '';
+    if (!prompt) return json({ error: 'prompt is required' }, 400);
+    const img = body.image;
+    const image = img && typeof img.data === 'string' && typeof img.mime === 'string' && /^image\/(png|jpeg|webp)$/.test(img.mime) ? { data: img.data, mime: img.mime } : undefined;
+    if (image && image.data.length > 8_000_000) return json({ error: 'The picture is too large' }, 413);
+    try {
+      return json(await viaGeminiImage(prompt, image));
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : 'Unknown error' });
+    }
   }
   const messages: Msg[] = Array.isArray(body.messages)
     ? body.messages.filter((m): m is Msg => (m?.role === 'user' || m?.role === 'assistant') && typeof m?.content === 'string').slice(-12)

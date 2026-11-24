@@ -17,6 +17,12 @@ import { type Lang } from './lang';
 export { LANGUAGES, initialLang, isLang, isRtl, type Lang } from './lang';
 
 const he = {
+  removeBackground: "הסרת רקע (AI)",
+  removingBackground: "מסיר רקע…",
+  removeBackgroundHint: "CutVid AI גוזר את הנושא, ומפתח המסך הירוק למטה מסתיר את השאר. דורש התחברות.",
+  greenScreen: "מסך ירוק",
+  blueScreen: "מסך כחול",
+  creatingImage: "עובד על תמונות",
   deviceLanguage: 'שפת המכשיר',
   linkSent: 'שלחנו לכם קישור התחברות באימייל. פתחו אותו במכשיר הזה כדי לסיים את ההתחברות.',
   aiSignIn: 'כדי להשתמש ב-CutVid AI צריך להתחבר לחשבון CutVid.',
@@ -179,7 +185,7 @@ const he = {
   applied: 'שינויים הוחלו',
   noChanges: 'לא בוצעו שינויים',
   clearChat: 'נקה שיחה',
-  aiNotGenerative: 'ה‑AI עורך את הטיימליין בלבד: טקסט, צורות, אפקטים, קיפריימים והמדיה שלכם.',
+  aiNotGenerative: "CutVid AI עורך את הטיימליין, יוצר תמונות ומסיר רקעים. הוא לא יוצר צילומי וידאו או אודיו.",
   sug1: 'פתיח אנימטיבי של 5 שניות לערוץ בשם CutVid',
   sug2: 'כותרת תחתונה (lower third) עם שם ותפקיד',
   sug3: 'ספירה לאחור 3‑2‑1 עם זום',
@@ -307,6 +313,12 @@ const he = {
 type Key = keyof typeof he;
 
 const en: Record<Key, string> = {
+  removeBackground: "Remove background (AI)",
+  removingBackground: "Removing background…",
+  removeBackgroundHint: "CutVid AI cuts out the subject; the green-screen key below hides the rest. Needs sign-in.",
+  greenScreen: "Green screen",
+  blueScreen: "Blue screen",
+  creatingImage: "Working on pictures",
   deviceLanguage: 'Device language',
   linkSent: 'We emailed you a sign-in link. Open it on this device to finish signing in.',
   aiSignIn: 'Sign in to your CutVid account to use CutVid AI.',
@@ -469,7 +481,7 @@ const en: Record<Key, string> = {
   applied: 'changes applied',
   noChanges: 'No changes were made',
   clearChat: 'Clear chat',
-  aiNotGenerative: 'The AI only edits your timeline: text, shapes, effects, keyframes and your own media.',
+  aiNotGenerative: "CutVid AI edits your timeline, creates pictures and removes backgrounds. It does not create video footage or audio.",
   sug1: 'A 5-second animated intro for a channel called CutVid',
   sug2: 'A lower third with a name and a job title',
   sug3: 'A 3-2-1 countdown with zoom',

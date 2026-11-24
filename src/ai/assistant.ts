@@ -4,7 +4,7 @@ import type { AnimProp, BlendMode, Clip, Easing, EffectType, Keyframe, Project, 
 import { ANIMATION_TYPES, ANIM_PROPS, DEFAULT_TEXT, EFFECT_TYPES, clipEnd, projectDuration } from '../types';
 import { EASINGS } from '../engine/keyframes';
 
-export const SYSTEM_PROMPT = `You are CutVid AI, the assistant inside the CutVid video editor. You build and edit the user's timeline by returning a list of operations. You can create motion graphics and whole videos out of text, shapes and the media files already imported into the project. You only edit the timeline: you cannot generate footage, pictures or audio. When a request needs media that is not in the project, build the best version you can from text, shapes and overlays, and say what is missing.
+export const SYSTEM_PROMPT = `You are CutVid AI, the assistant inside the CutVid video editor. You build and edit the user's timeline by returning a list of operations. You can create motion graphics and whole videos out of text, shapes, the media already in the project and pictures you generate. You can create still pictures (generateImage) and remove the background of pictures (removeBackground); you cannot create video footage or audio. Generate a picture only when the user asks for one or a scene clearly needs an image that is not in the project — each picture takes a few seconds.
 
 Reply with ONE JSON object and nothing else (no markdown fence):
 {"message": "<one or two sentences to the user, in the language they wrote in>", "ops": [ ...operations... ]}
@@ -22,6 +22,8 @@ Operations
   text fields: size, color, bold, italic, font ("sans"|"rounded"|"display"|"condensed"|"serif"|"script"|"marker"|"mono"|"impact"), align ("left"|"center"|"right"), stroke, strokeWidth, background (colour or ""), shadow, glow (0-80) with glowColor, typewriter (bool)
 - {"op":"addShape","id":"s1","kind":"rect"|"ellipse"|"triangle"|"star"|"heart"|"arrow"|"diamond"|"hexagon"|"line"|"bubble"|"ring"|"frame"|"letterbox"|"vignette"|"scanlines"|"grain","fill":"#rrggbb","fill2":"#rrggbb" (optional, makes a gradient), "gradientAngle":90,"width":1,"height":1,"radius":0,"start":0,"duration":3, ...common fields}
 - {"op":"addMedia","id":"m1","asset":"a1","start":0,"duration":4,"offset":0,"speed":1,"volume":1, ...common fields}  ("asset" is an alias from the project summary; "offset" is the in-point inside the file; omit "duration" to use the rest of the file)
+- {"op":"generateImage","id":"g1","prompt":"<detailed description of the picture>","start":0,"duration":4, ...common fields}  (creates a picture that fits the frame and adds it as a clip; describe subject, style, lighting and colours)
+- {"op":"removeBackground","clip":"c1"}  (picture clips only: cuts the subject out of its background, e.g. for a person or product shot. To remove a green or blue screen from a VIDEO, use updateClip with "chroma" instead.)
 - {"op":"updateClip","clip":"c1", ...any field listed here}  (only the fields you include change)
 - {"op":"deleteClip","clip":"c1"}
 - {"op":"setProject","width":1080,"height":1920,"fps":30,"background":"#000000"}
@@ -33,7 +35,7 @@ Common fields (all optional)
 - effects: {"shake":0.5,"glitch":0.4} — continuous effects with strength 0..1 (0 removes): motionBlur (blurs fast movement; use it on clips that move), shake, pulse, wobble, float, zoomPunch, strobe, flash, rgbSplit, glitch, pixelate, mirror, grain, scanlines, hueCycle
 - keyframes: {"x":[{"t":0,"v":-0.6,"ease":"easeOut"},{"t":1,"v":0}], "scale":[...]} for x, y, scale, rotation, opacity. "t" is seconds from the START OF THE CLIP. ease: "linear"|"easeIn"|"easeOut"|"easeInOut"|"backOut"|"backIn"|"elasticOut"|"bounceOut"|"expoOut"|"expoIn"|"sineInOut"|"hold", or a cubic-bezier array [x1,y1,x2,y2]. Set a property to null to remove its keyframes.
 - filters: {"brightness":1,"contrast":1,"saturation":1,"hue":0,"blur":0,"grayscale":0,"sepia":0,"invert":0,"vignette":0}
-- fadeIn / fadeOut (audio fades, seconds), chroma: {"enabled":true,"color":"#00ff00","similarity":0.35,"smoothness":0.1}
+- fadeIn / fadeOut (audio fades, seconds), chroma: {"enabled":true,"color":"#00ff00","similarity":0.35,"smoothness":0.1} — the green-screen key: makes one colour transparent; use the screen's colour (green #00ff00, blue #0047bb) for videos shot on a green or blue screen
 
 "clip" refers to an existing clip alias (c1, c2, ...) from the project summary, or to the "id" you gave a clip earlier in the same reply.
 
@@ -225,7 +227,7 @@ export function applyOps(ops: any[]): number {
           break;
         }
         case 'addMedia': {
-          const asset = assets.get(String(o.asset)) ?? p.assets.find((a) => a.name === o.asset);
+          const asset = assets.get(String(o.asset)) ?? p.assets.find((a) => a.id === o.asset || a.name === o.asset);
           if (!asset) continue;
           const speed = num(o.speed, 0.1, 8) ?? 1;
           const timed = asset.kind !== 'image';
@@ -241,6 +243,10 @@ export function applyOps(ops: any[]): number {
           if (!c) continue;
           c.start = num(o.start, 0, 36000) ?? c.start;
           c.duration = num(o.duration, 0.05, 3600) ?? c.duration;
+          if (typeof o.asset === 'string' && c.type === 'image') {
+            const a = p.assets.find((x) => x.id === o.asset && x.kind === 'image');
+            if (a) c.assetId = a.id;
+          }
           applyFields(c, o);
           applied++;
           continue;
@@ -283,4 +289,45 @@ export function applyOps(ops: any[]): number {
   });
   if (applied) useStore.setState({ selection: [] });
   return applied;
+}
+
+/**
+ * Runs the operations that need the network before the rest are applied in one undo step:
+ * generateImage becomes addMedia with the new picture, removeBackground becomes updateClip with the
+ * cut-out picture and the green-screen key. `onStep` reports progress ("Creating picture 1/2…").
+ */
+export async function resolveAsyncOps(ops: any[], onStep: (msg: string) => void = () => {}): Promise<{ ops: any[]; errors: string[] }> {
+  const { generateImage, greenBackground, GREEN_KEY } = await import('./images');
+  const clips = useStore.getState().project.clips;
+  const byAlias = (ref: unknown) => clips[Number(/^c(\d+)$/.exec(String(ref))?.[1] ?? 0) - 1];
+  const out: any[] = [];
+  const errors: string[] = [];
+  const total = ops.filter((o) => o?.op === 'generateImage' || o?.op === 'removeBackground').length;
+  let n = 0;
+  for (const o of ops) {
+    if (o?.op === 'generateImage' && typeof o.prompt === 'string' && o.prompt.trim()) {
+      onStep(`🖼 ${++n}/${total}`);
+      try {
+        const asset = await generateImage(o.prompt);
+        out.push({ ...o, op: 'addMedia', asset: asset.id });
+      } catch (e) {
+        errors.push((e as Error).message);
+      }
+    } else if (o?.op === 'removeBackground') {
+      onStep(`✂ ${++n}/${total}`);
+      const clip = byAlias(o.clip);
+      try {
+        if (!clip) throw new Error('Clip not found');
+        if (clip.type === 'video') {
+          out.push({ op: 'updateClip', clip: o.clip, chroma: { ...GREEN_KEY } });
+          continue;
+        }
+        const asset = await greenBackground(clip);
+        out.push({ op: 'updateClip', clip: o.clip, asset: asset.id, chroma: { ...GREEN_KEY } });
+      } catch (e) {
+        errors.push((e as Error).message);
+      }
+    } else out.push(o);
+  }
+  return { ops: out, errors };
 }

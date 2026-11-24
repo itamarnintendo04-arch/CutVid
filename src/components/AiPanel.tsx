@@ -3,7 +3,7 @@ import { ChevronDown, Eraser, RefreshCw, Send, Sparkles } from 'lucide-react';
 import { useStore } from '../store';
 import { useT, type TKey } from '../lib/i18n';
 import { PROVIDERS, chat, configFor, listModels, loadAiSettings, providerDef, saveAiSettings, type AiSettings, type ChatMessage, type ProviderConfig } from '../ai/providers';
-import { SYSTEM_PROMPT, applyOps, parseReply, projectSummary } from '../ai/assistant';
+import { SYSTEM_PROMPT, applyOps, parseReply, projectSummary, resolveAsyncOps } from '../ai/assistant';
 import { notify } from '../lib/notify';
 import { useSettings } from '../lib/settings';
 import { useSignedIn } from '../lib/supabase';
@@ -29,6 +29,7 @@ export function AiPanel() {
   const [turns, setTurns] = useState<Turn[]>(savedTurns);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState('');
   const [models, setModels] = useState<string[]>(() => modelCache.get(settings.provider) ?? []);
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelError, setModelError] = useState('');
@@ -88,8 +89,11 @@ export function AiPanel() {
     try {
       const raw = await chat(def.id, cfg, SYSTEM_PROMPT, [...history, { role: 'user', content: `Current project:\n${context}\n\nRequest: ${request}` }]);
       const reply = parseReply(raw);
-      const applied = reply.ops.length ? applyOps(reply.ops) : 0;
-      const note = reply.ops.length ? (applied ? `${applied} ${t('applied')}` : t('noChanges')) : undefined;
+      // Pictures (create / remove background) are made first; the whole edit is still one undo step.
+      const { ops, errors } = await resolveAsyncOps(reply.ops, setStep);
+      setStep('');
+      const applied = ops.length ? applyOps(ops) : 0;
+      const note = [reply.ops.length ? (applied ? `${applied} ${t('applied')}` : t('noChanges')) : '', ...errors].filter(Boolean).join(' · ') || undefined;
       if (useSettings.getState().notifyAi) notify('CutVid AI', reply.message || (note ?? '✓'));
       setTurns((prev) => [...prev, { role: 'assistant', text: reply.message || (applied ? '✓' : raw.slice(0, 400)), wire: raw, note }]);
     } catch (e) {
@@ -193,7 +197,7 @@ export function AiPanel() {
             {x.note && <small className="bubble-note">{x.note}</small>}
           </div>
         ))}
-        {busy && <div className="bubble assistant muted">{t('thinking')}</div>}
+        {busy && <div className="bubble assistant muted">{step ? `${t('creatingImage')} ${step}` : t('thinking')}</div>}
       </div>
 
       <form
