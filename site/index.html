@@ -7,6 +7,7 @@
     <meta name="description" content="CutVid is a video editor for iPhone, Android, Windows and Mac: multi-track timeline, keyframes with graphs, effects, overlays, text styles and an AI assistant." />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <title>CutVid – video editor for iPhone, Android, Windows and Mac</title>
+    <script src="./links.js"></script>
     <style>
       :root { --bg: #0b0c10; --panel: #14161c; --panel-2: #1b1e26; --line: #262a35; --text: #e8eaf0; --muted: #9499a8; --accent: #7c5cff; --accent-2: #19d3c5; color-scheme: dark; }
       * { box-sizing: border-box; }
@@ -46,6 +47,10 @@
       .dl .links { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
       .dl .btn { justify-content: center; padding: 11px 14px; }
       .note { font-size: 13.5px; color: var(--muted); margin: 0; }
+      .app-title { font-size: 19px; margin: 26px 0 12px; }
+      .app-title span { color: var(--muted); font-weight: 400; font-size: 15px; }
+      .dl .card.na { opacity: 0.55; }
+      .dl .btn[aria-disabled="true"] { pointer-events: none; background: var(--panel-2); border-color: var(--line); color: var(--muted); }
       ol { margin: 0; padding-inline-start: 20px; color: var(--muted); }
       ol li { margin-bottom: 6px; }
       form { display: flex; flex-direction: column; gap: 12px; max-width: 560px; }
@@ -106,18 +111,14 @@
         <div class="wrap">
           <h2>Download</h2>
           <p class="sub">Free. Pick your device.</p>
+          <h3 class="app-title">CutVid <span>· phones and computers</span></h3>
           <div class="dl">
             <div class="card" data-os="ios">
               <span class="tag">Your device</span>
               <h3>iPhone</h3>
-              <p>Installed with Sideloadly or AltStore.</p>
-              <div class="links"><a class="btn" data-file="CutVid-ios-unsigned.ipa">Download IPA</a></div>
-            </div>
-            <div class="card" data-os="ipad">
-              <span class="tag">Your device</span>
-              <h3>iPad – CutVid Pad</h3>
-              <p>The computer layout, made for iPad. Installed with Sideloadly or AltStore.</p>
-              <div class="links"><a class="btn" data-file="CutVid-Pad-unsigned.ipa">Download CutVid Pad</a></div>
+              <p>iOS 15 or newer.</p>
+              <div class="links"><a class="btn" data-file="CutVid-ios-unsigned.ipa" data-install="ios">Download IPA</a></div>
+              <p class="note ipa-note">Install the IPA with a tool like AltStore or Sideloadly.</p>
             </div>
             <div class="card" data-os="android">
               <span class="tag">Your device</span>
@@ -142,6 +143,24 @@
                 <a class="btn" data-file="CutVid-mac-arm64.dmg">Apple Silicon</a>
                 <a class="btn ghost" data-file="CutVid-mac-x64.dmg">Intel</a>
               </div>
+            </div>
+          </div>
+
+          <h3 class="app-title">CutVid Pad <span>· the computer layout for tablets</span></h3>
+          <div class="dl">
+            <div class="card" data-os="ipad">
+              <span class="tag">Your device</span>
+              <h3>iPad</h3>
+              <p>iPadOS 15 or newer.</p>
+              <div class="links"><a class="btn" data-file="CutVid-Pad-unsigned.ipa" data-install="pad">Download IPA</a></div>
+              <p class="note ipa-note">Install the IPA with a tool like AltStore or Sideloadly.</p>
+              <p class="note na-note" hidden>CutVid Pad is not available on iPhone — use CutVid above.</p>
+            </div>
+            <div class="card" data-os="android">
+              <span class="tag">Your device</span>
+              <h3>Android tablet</h3>
+              <p>Android 7 or newer.</p>
+              <div class="links"><a class="btn" data-file="CutVid-Pad-android.apk">Download APK</a></div>
             </div>
           </div>
         </div>
@@ -189,12 +208,36 @@
       document.querySelectorAll('[data-file]').forEach(function (a) {
         a.href = RELEASES + a.getAttribute('data-file');
       });
+      // iPhone / iPad: a signed install link from the site's settings (links.js) installs directly;
+      // without one, the button downloads the IPA and the note explains AltStore / Sideloadly.
+      var LINKS = window.CUTVID_LINKS || {};
+      document.querySelectorAll('[data-install]').forEach(function (a) {
+        var url = LINKS[a.getAttribute('data-install')];
+        if (!url) return;
+        a.href = url;
+        a.textContent = a.getAttribute('data-install') === 'pad' ? 'Install CutVid Pad' : 'Install CutVid';
+        var note = a.closest('.card').querySelector('.ipa-note');
+        if (note) note.hidden = true;
+      });
       var ua = navigator.userAgent;
       var os = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ipad' : /iPhone|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : /Windows/.test(ua) ? 'windows' : /Macintosh/.test(ua) ? 'mac' : '';
-      var mine = os && document.querySelector('[data-os="' + os + '"]');
-      if (mine) {
-        mine.classList.add('mine');
-        mine.parentNode.insertBefore(mine, mine.parentNode.firstChild);
+      // On iPad, CutVid's iPhone app also works; CutVid Pad is highlighted as the better fit.
+      document.querySelectorAll('.dl').forEach(function (group) {
+        var mine = os && group.querySelector('[data-os="' + os + '"]');
+        if (mine) {
+          mine.classList.add('mine');
+          group.insertBefore(mine, group.firstChild);
+        }
+      });
+      if (os === 'ios') {
+        var pad = document.querySelector('[data-os="ipad"]');
+        pad.classList.add('na');
+        pad.querySelector('.ipa-note').hidden = true;
+        pad.querySelector('.na-note').hidden = false;
+        var btn = pad.querySelector('.btn');
+        btn.textContent = 'Not available on iPhone';
+        btn.removeAttribute('href');
+        btn.setAttribute('aria-disabled', 'true');
       }
 
       // ---- feedback: stored in the CutVid database (write-only for visitors) ----

@@ -178,7 +178,7 @@ export function OverlaysPanel() {
   const t = useT();
   const clip = useStore(selectedClip);
   const updateClip = useStore((s) => s.updateClip);
-  const addOwn = async (files: FileList) => {
+  const addOwn = async (files: File[]) => {
     const assets = await importFiles(files);
     for (const a of assets) if (a.kind !== 'audio') useStore.getState().addClipFromAsset(a.id, { overlay: true });
   };

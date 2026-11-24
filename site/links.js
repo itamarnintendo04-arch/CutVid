@@ -1,0 +1,1 @@
+window.CUTVID_LINKS = {};
