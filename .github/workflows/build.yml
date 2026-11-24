@@ -5,7 +5,8 @@ name: Build apps
 # the Actions storage quota, which large Electron builds used to fill up.
 on:
   push:
-    branches: [main, 'claude/**']
+    # Only main builds apps: building every branch too would spend the monthly Actions minutes twice.
+    branches: [main]
     # Docs and Supabase-only changes do not need new app builds (macOS minutes are expensive).
     paths-ignore: ['supabase/**', '**.md', 'vercel.json', 'site/**']
     tags: ['v*']
