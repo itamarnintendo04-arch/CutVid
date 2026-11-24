@@ -1,197 +1,152 @@
 # CutVid
 
-עורך וידאו מקצועי בקוד אחד לכל הפלטפורמות: **iPhone, Android, Windows, macOS** וגם דפדפן (PWA).
+A video editor for **iPhone, iPad, Android, Windows and macOS**, built from one codebase.
+Website and downloads: **https://cutvid.vercel.app**
 
-| פלטפורמה | עטיפה | קובץ שנוצר |
-| --- | --- | --- |
-| Windows | Electron | `CutVid-…-setup.exe`, `CutVid-…-portable.exe` |
-| macOS | Electron | `CutVid-…-mac-arm64.dmg`, `CutVid-…-mac-x64.dmg` |
-| Android | Capacitor | `CutVid-android.apk` |
-| iPhone / iPad | Capacitor | `CutVid-ios-unsigned.ipa` |
-| iPad (פריסת מחשב) – CutVid Pad | Capacitor, `CUTVID_PAD=1` | `CutVid-Pad-unsigned.ipa` |
-| Web | PWA | תיקיית `dist/` |
+| App | Platform | Shell | File |
+| --- | --- | --- | --- |
+| CutVid | iPhone (and iPad) | Capacitor | `CutVid-ios-unsigned.ipa` |
+| CutVid | Android | Capacitor | `CutVid-android.apk` |
+| CutVid | Windows | Electron | `CutVid-setup.exe`, `CutVid-portable.exe` |
+| CutVid | macOS | Electron | `CutVid-mac-arm64.dmg` (Apple Silicon), `CutVid-mac-x64.dmg` (Intel) |
+| CutVid Pad | iPad | Capacitor, `CUTVID_PAD=1` | `CutVid-Pad-unsigned.ipa` |
+| CutVid Pad | Android tablets | Capacitor, `CUTVID_PAD=1` | `CutVid-Pad-android.apk` |
 
-## מה יש בעורך
+**CutVid Pad** is the same app with the computer layout on tablets, under its own app ID (`com.cutvid.pad`) so it can be installed next to CutVid. It is not available on iPhone.
 
-- **מסך בית** – רשת פרויקטים עם תמונה ממוזערת, יצירת פרויקט לפי יחס מסך (16:9, 9:16, 1:1, 4:5, 4:3, 3:4, 21:9), ובקשה להפעלת התראות.
-- **טיימליין רב־שכבתי** – רצועות וידאו/אודיו, גרירה, חיתוך קצוות, פיצול, שכפול, הצמדה מגנטית, זום, נעילה/הסתרה/השתקה.
-- **טאבים** – מדיה, טקסט, אלמנטים, אוברליי, אפקטים, מעברים, פילטרים, קיפריימים, AI ועריכה (בטלפון: סרגל נגלל בתחתית).
-- **ייבוא** – בטלפון: "גלריה" (תמונות וסרטונים) או "קבצים" (כולל אודיו). במחשב: כפתור אחד לקבצים.
-- **טקסט** – 16 סגנונות מוכנים, 21 גופנים מובנים (8 תומכים בעברית), מתאר, רקע, צל, **זוהר** בצבע לבחירה, מכונת כתיבה.
-- **אלמנטים** – 12 צורות, רקעי גרדיאנט, סטיקרים.
-- **אוברליי** – תמונה או סרטון משלכם (מהגלריה או מקבצים) כשכבה עליונה, עם קיצורים למצבי מיזוג; ובנוסף דליפת אור, גווני צבע, וינייטה, פסים קולנועיים, קווי סריקה, גרעין פילם, מסגרת, זרקור ועוד; עם שקיפות ומצב מיזוג.
-- **אפקטים** – טשטוש תנועה (motion blur), shake, pulse, wobble, float, zoomPunch, strobe, flash, rgbSplit, glitch, pixelate, mirror, grain, scanlines, hueCycle, ומסך ירוק.
-- **מעברים** – 19 אנימציות כניסה/יציאה (fade, slide, zoom, spin, wipe לארבעה כיוונים, iris, flip, bounce, drop, swing, blur).
-- **פילטרים** – 14 פריסטים ותשעה מחוונים.
-- **קיפריימים וגרפים** – קיפריימים למיקום, גודל, סיבוב ושקיפות; 25 גרפים מוכנים (ease, back, elastic, bounce…) ועורך cubic‑bezier מותאם אישית, לכל הקיפריימים או למקטע הנוכחי.
-- **פריסטים בחשבון** – גרפים, פילטרים ואפקטים מותאמים אישית נשמרים לחשבון Supabase (דורש התחברות) וניתנים לניהול ומחיקה.
-- **ייצוא MP4** – הרזולוציה (480p–4K), הפריימים והאיכות נבחרים בייצוא; באפליקציות הקובץ נשמר ישירות לגלריה.
-- **CutVid AI** – צ'אט שעורך את הטיימליין לפי תיאור (עריכה בלבד; לא יוצר תמונות או וידאו).
-- **אייקון האפליקציה** – 12 סגנונות לבחירה בהגדרות (iOS ו‑Android משנים את האייקון במסך הבית; במחשב משתנה אייקון החלון והמעגן). הסגנונות מוגדרים ב‑`src/lib/appIconStyles.mjs`, ואחרי שינוי מריצים `node scripts/render-app-icons.mjs`.
-- **הגדרות** – התראות (סיום עריכת AI, סיום ייצוא, גרסאות חדשות), שמירה אוטומטית לגלריה, וברירות מחדל לרזולוציה, FPS ואיכות בייצוא.
-- **סנכרון אוטומטי** – כשמחוברים לחשבון, הפרויקטים מסתנכרנים לבד בין המכשיר לענן: עריכות עולות כמה שניות אחרי שמפסיקים, פרויקטים ממכשירים אחרים מופיעים במסך הבית, ומחיקה מתפשטת לכל המכשירים.
-- **פידבק** – טופס באפליקציה ובאתר שנשמר ב‑Supabase.
-- **Undo/Redo**, שמירה אוטומטית במכשיר, ענן Supabase, עברית/אנגלית.
+## Features
 
-קיצורי מקלדת: `Space` ניגון · `S` פיצול · `Delete` מחיקה · `Ctrl+Z / Ctrl+Shift+Z` · `Ctrl+D` שכפול · `←/→` פריים (עם `Shift` – 10) · `Ctrl+גלגלת` זום.
+- **Home screen** – tabs for Create (pick an aspect ratio: 16:9, 9:16, 1:1, 4:5, 4:3, 3:4, 21:9), Projects (needs sign-in) and Settings, plus a small feedback button.
+- **Multi-track timeline** – video and audio tracks, drag, trim, split, duplicate, magnetic snapping, zoom, lock / hide / mute, and a keyframe diamond in the toolbar.
+- **Library tabs** – Media, Text, Elements, Overlays, Effects, Transitions, Filters, Keyframes, AI and Edit (a scrolling bar at the bottom on phones).
+- **Import** – on phones and tablets, *Gallery* opens the photo library and *Files* opens the Files app; on computers a single *Import files* button.
+- **Text** – 16 ready-made styles, 21 built-in fonts, outline, background, shadow, coloured glow, typewriter.
+- **Elements** – 12 shapes, gradient backgrounds, stickers.
+- **Overlays** – your own photo or video from the gallery or files as a top layer, plus light leaks, colour washes, vignette, letterbox, scanlines, film grain, frame, spotlight and more, with opacity and blend modes.
+- **Effects** – motion blur, shake, pulse, wobble, float, zoom punch, strobe, flash, RGB split, glitch, pixelate, mirror, grain, scanlines, hue cycle, green screen.
+- **Transitions** – 19 in/out animations (fade, slide, zoom, spin, wipes, iris, flip, bounce, drop, swing, blur).
+- **Filters** – 14 presets and nine sliders.
+- **Keyframes and graphs** – position, scale, rotation and opacity; 25 ready-made easing graphs and a custom cubic-bezier editor.
+- **Presets in your account** – your graphs, filters and effects are saved to your CutVid account.
+- **MP4 export** – resolution (480p–4K), frame rate and quality chosen at export; the apps save straight to the gallery.
+- **CutVid AI** – a chat that edits the timeline from a description (editing only; it does not generate images or video).
+- **App icon** – 12 icon styles to choose from in Settings.
+- **Settings** – account, 14 languages, notifications (AI finished, export finished, new versions), export defaults, app icon.
+- **Automatic sync** – when signed in, projects sync between devices by themselves.
+- **Undo / redo**, autosave on the device.
 
-## פיתוח
+**Languages:** English, Hebrew, Arabic, Spanish, French, German, Portuguese, Italian, Russian, Turkish, Hindi, Japanese, Korean and Chinese. The app follows the device language on first run.
+
+**Keyboard shortcuts:** `Space` play · `S` split · `Delete` delete · `Ctrl+Z` / `Ctrl+Shift+Z` · `Ctrl+D` duplicate · `←` / `→` one frame (`Shift`: 10) · `Ctrl+wheel` zoom.
+
+## Development
 
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm run build        # בנייה ל-dist/
+npm run build        # production build in dist/
 ```
 
-## יצירת קבצי האפליקציה
+## Building the apps
 
-### הדרך הקלה – GitHub Actions
+### GitHub Actions
 
-כל push מריץ את `.github/workflows/build.yml`, בונה את כל הפלטפורמות ומפרסם דף הורדה.
-ב‑GitHub: **Releases → הגרסה העליונה → Assets** ולוחצים על הקובץ הרצוי – הורדה ישירה, בלי ZIP.
-הקבצים מועלים ישר לדף ה‑Release ולא כ‑Artifacts של Actions, כך שהם לא נספרים במכסת האחסון של Actions. גרסה הופכת ל‑"latest" רק כשכל הפלטפורמות הצליחו. המאגר פרטי, ולכן צריך להיות מחוברים ל‑GitHub כדי להוריד.
+Every push to `main` runs [`.github/workflows/build.yml`](.github/workflows/build.yml), which builds all platforms and attaches the files to a release on the **Releases** page. A release becomes *latest* (the one the website downloads) only after every platform succeeded. Changes to docs, `site/`, `supabase/` or `vercel.json` alone do not trigger app builds.
 
-### בנייה מקומית
+- A commit whose message contains **`[release]`** publishes an official release named after the `version` in `package.json` (for example *CutVid v1.0.0*). Other pushes publish numbered builds (*CutVid build N*).
+- When shipping a new version, bump `APP_VERSION` in `src/version.ts` and `public/version.json` together: installed apps compare them to show "new version available".
+
+### Local builds
 
 ```bash
-npm run dist:win      # Windows  → release/*.exe   (להריץ על Windows)
-npm run dist:mac      # macOS    → release/*.dmg   (להריץ על Mac)
-npm run cap:android   # יוצר android/ → לפתוח ב-Android Studio או: cd android && ./gradlew assembleDebug
-npm run cap:ios       # יוצר ios/     → npx cap open ios  (דורש Mac + Xcode)
+npm run dist:win      # Windows → release/*.exe   (run on Windows)
+npm run dist:mac      # macOS   → release/*.dmg   (run on a Mac)
+npm run cap:android   # creates android/ → open in Android Studio, or: cd android && ./gradlew assembleDebug
+npm run cap:ios       # creates ios/     → npx cap open ios (needs a Mac with Xcode)
 ```
 
-### חתימה והפצה
+For CutVid Pad, set `CUTVID_PAD=1` for the web build, `cap add` and `node scripts/patch-native.mjs`.
 
-- **Android** – ה‑APK הוא debug וניתן להתקנה ישירה. ל‑Google Play צריך keystore ו‑`./gradlew bundleRelease`.
-- **iOS** – Apple מחייבת חתימה. ה‑IPA מה‑CI **לא חתום**: אפשר להתקין אותו עם AltStore/Sideloadly, או לפתוח את הפרויקט ב‑Xcode עם Apple ID ולהריץ על המכשיר. ל‑App Store/TestFlight דרוש חשבון Apple Developer (99$ לשנה).
-- **macOS / Windows** – הקבצים לא חתומים, ולכן תופיע אזהרת Gatekeeper / SmartScreen בפתיחה הראשונה (ב‑Mac: קליק ימני → Open).
-- **בלי התקנה בכלל** – מעלים את `dist/` לכל אחסון סטטי (Vercel, Netlify, Supabase Storage…) וב‑iPhone/Android בוחרים "הוסף למסך הבית".
+### Signing
 
-## חיבור Supabase
+- **Android** – the APK is a debug build and installs directly. Google Play needs a keystore and `./gradlew bundleRelease`.
+- **iOS / iPadOS** – the CI IPA is **unsigned**. Install it with AltStore or Sideloadly, or set a signed install link on the website (see below). The App Store needs an Apple Developer account.
+- **Windows / macOS** – unsigned, so SmartScreen / Gatekeeper warn on first launch (Mac: right-click → Open).
 
-### 1. מסד הנתונים
+## Website (cutvid.vercel.app)
 
-- **עם תוסף ה‑GitHub של Supabase** (Project Settings → Integrations → GitHub): התיקייה `supabase/` במאגר מכילה את `config.toml` ואת [`migrations/`](supabase/migrations). אחרי מיזוג לענף הראשי התוסף מריץ את המיגרציות ופורס את פונקציית ה‑AI אוטומטית. ודאו שב‑"Supabase directory" כתוב `supabase` וש‑"Deploy to production" פעיל.
-- **ידנית**: SQL Editor → New query → מדביקים את [`supabase/migrations/20261114000000_init.sql`](supabase/migrations/20261114000000_init.sql) ומריצים.
+The website is a landing page only: what CutVid is, download buttons, install steps, feedback, and the developer program. Its source is [`site/`](site); Vercel deploys it from `main` (see [`vercel.json`](vercel.json)).
 
-המיגרציה יוצרת טבלת `projects` עם RLS ובאקט פרטי `media`, כך שכל משתמש רואה רק את הקבצים שלו.
+- Download buttons point to `releases/latest/download/<file>` on GitHub.
+- **Signed iPhone / iPad install links** – in Vercel → *Settings → Environment Variables* set `CUTVID_IOS_INSTALL_URL` (CutVid) and/or `CUTVID_PAD_INSTALL_URL` (CutVid Pad), then redeploy. With a link, the button installs directly; without one it downloads the IPA with a note to use AltStore or Sideloadly. Only `https://` and `itms-services://` links are accepted.
+- `/callback` ([`public/auth.html`](public/auth.html)) hands sign-in results (Google, email links) back to the right app: `com.cutvid.app://`, `com.cutvid.pad://` or the desktop app.
 
-### 2. חיבור האפליקציה
+## Supabase
 
-**Project Settings → API** – מעתיקים את ה‑`Project URL` ואת מפתח ה‑`anon` / `publishable`, ואז:
+Project: `btrwboxwbinqewgvlcal`. Its URL and publishable key are built into the apps ([`src/lib/supabase.ts`](src/lib/supabase.ts)); the publishable key is meant to be public, and data is protected by row-level security. Never put a `service_role` / secret key in the apps.
 
-- **בתוך האפליקציה** – כפתור Cloud, מדביקים URL ומפתח. נשמר במכשיר.
-- **מובנה בבנייה** – ב‑GitHub: *Settings → Secrets and variables → Actions* מוסיפים `VITE_SUPABASE_URL` ו‑`VITE_SUPABASE_ANON_KEY` (מקומית: `.env` לפי `.env.example`).
+### Database
 
-מפתח ה‑`anon` בטוח לצד הלקוח – ההגנה היא ב‑RLS. **לעולם לא** לשים את `service_role` באפליקציה.
+[`supabase/migrations/`](supabase/migrations) creates:
 
-### 3. כתובות חזרה (חובה ל‑Google ולאיפוס סיסמה)
+- `projects` and the private `media` bucket – each user sees only their own projects and files;
+- `presets` – saved graphs, filters and effects;
+- `feedback` – anyone can send, nobody can read through the API (view it in *Table Editor*);
+- `developer_apps` – "Sign in with CutVid" applications (server-side access only).
 
-**Authentication → URL Configuration → Redirect URLs** – מוסיפים:
+### Authentication
 
-| כתובת | בשביל |
+- **Sign-up** sends a confirmation link. **Email sign-in** checks the password and then emails a **sign-in link** that must be opened on the same device. **Forgot password** sends a reset link.
+- **Google** – in Google Cloud create an OAuth *Web application* client with the redirect URI `https://btrwboxwbinqewgvlcal.supabase.co/auth/v1/callback`, then enable Google in Supabase → *Authentication → Sign In / Providers* with its Client ID and Secret.
+- **Redirect URLs** (*Authentication → URL Configuration*): Site URL `https://cutvid.vercel.app`, plus `https://cutvid.vercel.app/**`, `com.cutvid.app://auth`, `com.cutvid.pad://auth` and `http://127.0.0.1:47823/callback`.
+- **Email templates** – branded templates are in [`supabase/templates/`](supabase/templates); paste them in *Authentication → Emails → Templates* (Source view). All of them use links.
+- **SMTP** – Supabase's built-in mail server is heavily rate-limited, so connect your own in *Authentication → Emails → SMTP Settings* (for Gmail: `smtp.gmail.com`, port 465, your address and an app password).
+
+### CutVid AI
+
+The built-in assistant runs in the [`cutvid-ai`](supabase/functions/cutvid-ai/index.ts) Edge Function, so the provider key stays on the server and only signed-in users can call it. Add one of these in *Edge Functions → Secrets*:
+
+| Provider | Secrets |
 | --- | --- |
-| `com.cutvid.app://auth` | iPhone / Android |
-| `http://127.0.0.1:47823/callback` | Windows / macOS |
-| כתובת האתר שלכם (למשל `https://cutvid.example.com/`) | גרסת הדפדפן |
+| Google Gemini (default) | `AI_API_KEY` – a Google AI Studio key |
+| Any OpenAI-compatible provider | `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` |
+| Anthropic (Claude) | `ANTHROPIC_API_KEY` (optional `CUTVID_AI_MODEL`) |
 
-### האתר (cutvid.vercel.app)
+If the configured model is not available, the function tries other available models of the same provider. Users can also pick their own provider and API key in the app (Anthropic, OpenAI, Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Fireworks, Cerebras, Ollama, LM Studio or any OpenAI-compatible server); that key stays on their device.
 
-האתר הוא דף נחיתה בלבד – מידע על האפליקציה, קישורי הורדה, הוראות התקנה וטופס פידבק – ולא כולל את העורך. המקור בתיקייה [`site/`](site); Vercel מעתיק אותה יחד עם `public/auth.html` ו‑`public/version.json` (ראו `vercel.json`).
+### Sign in with CutVid (developer program)
 
-כפתורי ההורדה מפנים ל‑`releases/latest/download/<קובץ>` ב‑GitHub, כך שהם תמיד מורידים את הבנייה האחרונה. **כל עוד המאגר פרטי, ההורדה עובדת רק למי שמחובר ל‑GitHub עם גישה למאגר.** כדי שכל אחד יוכל להוריד צריך להפוך את המאגר לציבורי (או לארח את הקבצים במקום ציבורי אחר).
+Other apps can let people sign in with a CutVid account (OAuth 2.1 / OpenID Connect):
 
-### דף חזרה לאפליקציה
+1. A developer applies at **cutvid.vercel.app/developers**. The owner gets an email with *Approve* / *Reject*; the developer gets a confirmation.
+2. Approval sends the developer a welcome email; rejection sends a "maybe next time" email.
+3. Approved developers sign in at **/developers/console** with the same email and create their Client ID and Secret.
+4. End users approve access on the consent screen at **/oauth/consent**.
 
-כשגרסת הדפדפן מתארחת בכתובת ציבורית, הכתובת `/callback` (הקובץ [`public/auth.html`](public/auth.html)) משמשת גשר: אחרי התחברות עם Google או לחיצה על קישור במייל, הדפדפן מגיע לדף ממותג "Returning to CutVid" שמחזיר את התוצאה לאפליקציה (`?to=app` למובייל, `?to=desktop` למחשב) ומציג כפתור **Open CutVid** אם המעבר האוטומטי נחסם.
+Setup in Supabase:
 
-1. מארחים את `dist/` (למשל ב‑Vercel) ומקבלים כתובת, נניח `https://cutvid.example.com`.
-2. ב‑GitHub: *Settings → Secrets and variables → Actions → Variables* מוסיפים `VITE_SITE_URL` עם הכתובת, ובונים מחדש.
-3. ב‑Supabase: מוסיפים ל‑Redirect URLs את `https://cutvid.example.com/**`, ומגדירים אותה גם כ‑**Site URL**.
+- *Edge Functions → Secrets*: `SMTP_USER`, `SMTP_PASS` (Gmail address and app password) and `ADMIN_EMAIL` (where applications go). Code: [`supabase/functions/developer-apps`](supabase/functions/developer-apps/index.ts).
+- *Authentication → OAuth Server*: enable it and set the authorization path to `/oauth/consent`.
+- Recommended: switch *JWT Signing Keys* to an asymmetric key (RS256 / ES256) so clients can request the `openid` scope.
 
-בלי `VITE_SITE_URL` האפליקציות חוזרות ישירות דרך `com.cutvid.app://auth` / הכתובת המקומית, כמו קודם.
+## Known limitations
 
-### 4. התחברות עם Google
+- Export needs WebCodecs (Chrome, Edge, Electron, Android WebView, Safari / iOS 16.4+). Devices without an audio encoder export without sound.
+- Colour filters rely on `CanvasRenderingContext2D.filter`; where Safari lacks it they are skipped.
+- New-version notifications while the app is closed use a background task ([`public/runners/background.js`](public/runners/background.js)); the operating system decides when it runs (on iOS this can take hours). It is not real push.
+- Speed changes also change pitch in the exported file.
+- Not yet verified on real devices: saving to the gallery, the native Gallery / Files pickers, notifications, app-icon switching, sign-in returning to the app, and the iOS / Android / Windows / macOS shells in general.
 
-1. [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → **OAuth consent screen** – ממלאים שם אפליקציה ואימייל.
-2. **Credentials → Create credentials → OAuth client ID** מסוג **Web application**.
-3. תחת *Authorized redirect URIs* מוסיפים: `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
-4. ב‑Supabase: **Authentication → Sign In / Providers → Google** – מפעילים ומדביקים את ה‑Client ID וה‑Client Secret.
-
-באפליקציה: Cloud → **Continue with Google**. במובייל ובדסקטופ ההתחברות נפתחת בדפדפן המערכת וחוזרת לאפליקציה.
-
-### 5. SMTP (אימיילים של אימות ואיפוס סיסמה)
-
-שרת המייל המובנה של Supabase מוגבל לכמה הודעות בשעה ורק לכתובות של חברי הצוות, ולכן לשימוש אמיתי מחברים SMTP משלכם:
-
-1. פותחים חשבון אצל ספק מיילים (Resend, Brevo, SendGrid, Mailgun, Amazon SES…) ומאמתים דומיין שולח.
-2. ב‑Supabase: **Authentication → Emails → SMTP Settings → Enable custom SMTP** וממלאים Host, Port, Username, Password, כתובת שולח ושם שולח לפי הספק (ב‑Resend למשל: `smtp.resend.com`, פורט `465`, משתמש `resend`, והסיסמה היא ה‑API key).
-3. שומרים, ואז ב‑**Authentication → Rate Limits** מעלים את מגבלת המיילים לשעה לפי הצורך.
-
-### 6. קישור בהרשמה וקוד בהתחברות
-
-האפליקציה שולחת **קישור אימות בהרשמה** ו**קוד חד‑פעמי בהתחברות** (אחרי סיסמה נכונה). כדי שזה יעבוד:
-
-1. **Authentication → Sign In / Providers → Email** – מפעילים **Confirm email**.
-2. **Authentication → Emails → Templates** – מדביקים את התבניות המוכנות מהתיקייה [`supabase/templates/`](supabase/templates) (בתצוגת *Source*), עם הנושאים שבטבלה שם. החשובה ביותר היא **Magic Link** ← `magic_link.html`: היא מציגה את הקוד (`{{ .Token }}`); בלעדיה Supabase ישלח קישור במקום קוד.
-3. באותו מסך של Email אפשר לקבוע את אורך הקוד (6–10 ספרות) ואת תוקפו.
-
-הקוד בהתחברות נאכף באפליקציה ולא בשרת – זו שכבת אימות נוספת, לא MFA מלא. התחברות עם Google לא דורשת קוד.
-
-אחרי זה הרשמה באימייל שולחת מייל אימות, ו‑**Forgot password?** שולח קישור איפוס שחוזר לאפליקציה ומבקש סיסמה חדשה (בדסקטופ צריך לפתוח את הקישור באותו מחשב בתוך 15 דקות).
-
-בתוכנית החינמית קובץ בודד ב‑Storage מוגבל ל‑50MB (ניתן לשינוי ב‑*Storage → Settings*).
-
-## CutVid AI
-
-לשונית **AI** בספרייה: כותבים מה ליצור ("פתיח של 5 שניות עם הכותרת…", "סדר את הקליפים ברצף עם fade") וה‑AI מוסיף ומעדכן קליפים, קיפריימים, אנימציות ופילטרים. כל תשובה היא צעד Undo אחד.
-
-ה‑AI בונה מטקסט, צורות והמדיה שכבר בפרויקט. הוא **לא** מייצר צילומי וידאו, תמונות או קול חדשים.
-
-### ספק משלכם
-
-1. פותחים את "הגדרות ספק" ובוחרים ספק: Anthropic (Claude), OpenAI, Google Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Fireworks, Cerebras, Ollama / LM Studio (מקומי), או כל שרת תואם‑OpenAI בכתובת משלכם.
-2. מדביקים את ה‑API key ולוחצים **"טען מודלים זמינים"** – הרשימה נמשכת מהספק לפי המפתח.
-3. בוחרים מודל ומתחילים לכתוב.
-
-המפתח נשמר במכשיר בלבד (`localStorage`) ונשלח רק לספק שנבחר. באפליקציות (Windows/Mac/iOS/Android) הבקשות יוצאות מחוץ ל‑WebView ולכן כל הספקים עובדים; בגרסת הדפדפן ספק שלא מאפשר קריאות cross‑origin ייחסם על ידי הדפדפן.
-
-### CutVid AI מובנה (בלי מפתח למשתמשים)
-
-הספק "CutVid AI" (ברירת המחדל) רץ דרך Supabase Edge Function ([`supabase/functions/cutvid-ai`](supabase/functions/cutvid-ai/index.ts)), כך שהמפתח נשאר בשרת ורק משתמשים מחוברים יכולים לקרוא לו. הפונקציה פרוסה; כדי שתענה צריך להוסיף מפתח של ספק AI ב‑Supabase → **Edge Functions → Secrets**, באחת משתי דרכים:
-
-| אפשרות | Secrets |
-| --- | --- |
-| Google Gemini 2.5 Flash (ברירת המחדל) | `AI_API_KEY` בלבד – מפתח מ‑Google AI Studio |
-| ספק אחר תואם‑OpenAI | `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` |
-| Anthropic (Claude) | `ANTHROPIC_API_KEY` (ואופציונלית `CUTVID_AI_MODEL`) |
-
-השימוש מחויב בחשבון הספק שלכם על כל משתמש מחובר – כדאי להגביל שימוש לפני פתיחה לקהל רחב.
-
-### פידבק
-
-טופס הפידבק שומר לטבלת `feedback`. כולם יכולים לשלוח, אף אחד לא יכול לקרוא דרך ה‑API; צופים בו ב‑Supabase → **Table Editor → feedback**.
-
-## מגבלות ידועות
-
-- הייצוא דורש WebCodecs: Chrome/Edge/Electron/Android WebView, ו‑Safari/iOS 16.4 ומעלה. ב‑iOS ישן מ‑26 אין מקודד אודיו ולכן הקובץ ייצא ללא קול.
-- פילטרי צבע נשענים על `CanvasRenderingContext2D.filter`; בגרסאות Safari/iOS שלא תומכות בו הם מדולגים.
-- התראות על גרסאות חדשות כשהאפליקציה סגורה: בטלפון רצה משימת רקע (`public/runners/background.js`) שבודקת את `version.json` באתר ומציגה התראה מקומית. מערכת ההפעלה מחליטה מתי להריץ אותה (ב‑iOS זה יכול לקחת שעות ואף ימים, ולא ירוץ אם האפליקציה נסגרה בכוח). זה לא Push אמיתי – כזה דורש חשבון מפתח של Apple / Firebase. במחשב ההתראה מופיעה רק כשהאפליקציה פתוחה.
-- שמירה לגלריה, ייבוא ב‑iOS והתראות לא נבדקו על מכשיר אמיתי.
-- שינוי מהירות משנה גם את גובה הצליל בקובץ המיוצא.
-- התחברות עם Google ואיפוס סיסמה נבדקו רק עד שלב ההפניה ל‑Supabase; הזרימה המלאה (כולל החזרה לאפליקציה במובייל ובדסקטופ) לא הורצה מול פרויקט אמיתי.
-- הסנכרון האוטומטי נבדק מול שרת מדומה בלבד.
-- ה‑AI נבדק מול שרת ספק מדומה (תואם‑OpenAI); החיבור לספקים אמיתיים ופונקציית ה‑Edge לא הורצו מול מפתח אמיתי.
-- הייצוא נבדק ב‑Chromium בלבד; העטיפות ל‑iOS/Android/Windows/macOS נבנות ב‑CI ולא נבדקו על מכשירים אמיתיים.
-
-## מבנה
+## Project layout
 
 ```
-src/engine/   render.ts (קומפוזיטור) · player.ts · export.ts · media.ts · keyframes.ts
-src/components/  Timeline · Preview · Inspector · Library · דיאלוגים
-src/ai/       providers.ts (ספקים ומודלים) · assistant.ts (פרומפט והחלת פעולות) · http.ts
-src/lib/      supabase.ts · db.ts (IndexedDB) · save.ts · i18n.ts
-electron/     מעטפת דסקטופ        capacitor.config.ts  מעטפת מובייל
-supabase/     config.toml · migrations/ · functions/cutvid-ai
-scripts/      patch-native.mjs (רישום com.cutvid.app:// באנדרואיד וב‑iOS)
+src/engine/      render.ts (compositor) · player.ts · export.ts · media.ts · keyframes.ts
+src/components/  Home · Timeline · Preview · Inspector · Library · Panels · dialogs
+src/ai/          providers.ts · assistant.ts · http.ts
+src/lib/         supabase.ts · sync.ts · db.ts (IndexedDB) · i18n.ts · lang.ts · app.ts · settings.ts
+src/locales/     translations (English and Hebrew live in src/lib/i18n.ts)
+electron/        desktop shell          capacitor.config.ts   mobile shell
+site/            website and developer pages
+supabase/        migrations · functions (cutvid-ai, developer-apps) · templates
+scripts/         patch-native.mjs · render-app-icons.mjs · site-links.mjs
 ```
