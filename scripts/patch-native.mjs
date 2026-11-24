@@ -205,3 +205,16 @@ if (PAD && existsSync(plist)) {
     console.log('ios: iPad orientations added');
   }
 }
+
+// iOS: declare every language CutVid speaks. Without this the app counts as English-only: the web view
+// reports English whatever the device language is, and the app has no language option in iOS Settings.
+if (existsSync(plist)) {
+  let xml = readFileSync(plist, 'utf8');
+  if (!xml.includes('CFBundleLocalizations')) {
+    const langs = ['en', 'he', 'ar', 'es', 'fr', 'de', 'pt', 'it', 'ru', 'tr', 'hi', 'ja', 'ko', 'zh-Hans'];
+    const entry = `\t<key>CFBundleLocalizations</key>\n\t<array>\n${langs.map((l) => `\t\t<string>${l}</string>`).join('\n')}\n\t</array>\n`;
+    const end = xml.lastIndexOf('</dict>');
+    writeFileSync(plist, xml.slice(0, end) + entry + xml.slice(end));
+    console.log(`ios: ${langs.length} languages declared`);
+  }
+}

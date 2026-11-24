@@ -4,7 +4,7 @@ import type { AnimProp, Clip, Easing, EffectType, MediaAsset, Project, ShapeStyl
 import { ANIM_PROPS, DEFAULT_CHROMA, DEFAULT_FILTERS, DEFAULT_TEXT, DEFAULT_TRANSFORM, clipEnd, projectDuration, uid } from './types';
 import { KF_EPS, findKeyframe, propAt } from './engine/keyframes';
 import { dbSet } from './lib/db';
-import { initialLang, type Lang } from './lib/lang';
+import { browserLang, chosenLang, deviceLang, initialLang, rememberLang, type Lang } from './lib/lang';
 
 export function emptyProject(name = 'Untitled'): Project {
   return {
@@ -117,6 +117,8 @@ interface State {
   select: (ids: string[]) => void;
   setZoom: (z: number) => void;
   setLang: (l: Lang) => void;
+  /** Follow the device language again (Settings → Language → Automatic). */
+  setLangAuto: () => void;
   setBusy: (b: string | null) => void;
   loadProject: (p: Project) => void;
   setScreen: (s: 'home' | 'editor') => void;
@@ -186,8 +188,13 @@ export const useStore = create<State>((set, get) => ({
   select: (selection) => set({ selection }),
   setZoom: (z) => set({ zoom: Math.max(4, Math.min(600, z)) }),
   setLang: (lang) => {
-    localStorage.setItem('cutvid:lang', lang);
+    rememberLang(lang);
     set({ lang });
+  },
+  setLangAuto: () => {
+    rememberLang(null);
+    set({ lang: browserLang() });
+    deviceLang().then((lang) => !chosenLang() && set({ lang }));
   },
   setBusy: (busy) => set({ busy }),
   loadProject: (project) => set({ project: normalizeProject(project), past: [], future: [], time: 0, playing: false, selection: [] }),

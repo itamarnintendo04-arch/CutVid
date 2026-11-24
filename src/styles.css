@@ -424,3 +424,4 @@ h2.with-status { display: flex; align-items: center; gap: 10px; }
   .app { grid-template: 'top top' 48px 'center center' minmax(0, 36%) 'left right' minmax(0, 1fr) 'bottom bottom' minmax(200px, 30%) / minmax(0, 1fr) minmax(0, 1fr); }
   .left { border-top: 1px solid var(--line); }
 }
+.lang-choice.lang-auto { grid-column: 1 / -1; gap: 8px; }
