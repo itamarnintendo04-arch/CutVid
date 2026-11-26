@@ -78,7 +78,7 @@ For CutVid Pad, set `CUTVID_PAD=1` for the web build, `cap add` and `node script
 The website is a landing page only: what CutVid is, download buttons, install steps, feedback, and the developer program. Its source is [`site/`](site); Vercel deploys it from `main` (see [`vercel.json`](vercel.json)).
 
 - Download buttons point to `releases/latest/download/<file>` on GitHub.
-- **Signed iPhone / iPad install links** – in Vercel → *Settings → Environment Variables* set `CUTVID_IOS_INSTALL_URL` (CutVid) and/or `CUTVID_PAD_INSTALL_URL` (CutVid Pad), then redeploy. With a link, the button installs directly; without one it downloads the IPA with a note to use AltStore or Sideloadly. Only `https://` and `itms-services://` links are accepted.
+- **Signed iPhone / iPad install links** – in Vercel → *Settings → Environment Variables* set `CUTVID_IOS_INSTALL_URL` (CutVid) and/or `CUTVID_PAD_INSTALL_URL` (CutVid Pad), then redeploy. With a link, the card shows **Install** (one tap) and keeps a **Download IPA** button next to it; without one it offers the IPA with a note to use AltStore or Sideloadly. The links are not stored in the code. Only `https://` and `itms-services://` links are accepted.
 - `/callback` ([`public/auth.html`](public/auth.html)) hands sign-in results (Google, email links) back to the right app: `com.cutvid.app://`, `com.cutvid.pad://` or the desktop app.
 
 ## Supabase

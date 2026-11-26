@@ -459,11 +459,16 @@
       document.querySelectorAll('[data-install]').forEach(function (a) {
         var url = LINKS[a.getAttribute('data-install')];
         if (!url) return;
-        a.href = url;
-        a.textContent = a.getAttribute('data-install') === 'pad' ? 'Install CutVid Pad' : 'Install CutVid';
-        a.insertAdjacentHTML('afterbegin', '<svg><use href="#i-download" /></svg>');
+        // A signed link installs in one tap; the IPA stays available next to it.
+        var install = document.createElement('a');
+        install.className = 'btn';
+        install.href = url;
+        install.innerHTML = '<svg><use href="#i-download" /></svg>';
+        install.append(a.getAttribute('data-install') === 'pad' ? 'Install CutVid Pad' : 'Install CutVid');
+        a.parentNode.insertBefore(install, a);
+        a.className = 'btn ghost';
         var note = a.closest('.card').querySelector('.ipa-note');
-        if (note) note.hidden = true;
+        if (note) note.textContent = 'Or download the IPA and install it with AltStore or Sideloadly.';
       });
       var ua = navigator.userAgent;
       var os = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ipad' : /iPhone|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : /Windows/.test(ua) ? 'windows' : /Macintosh/.test(ua) ? 'mac' : '';
@@ -480,10 +485,12 @@
         pad.classList.add('na');
         pad.querySelector('.ipa-note').hidden = true;
         pad.querySelector('.na-note').hidden = false;
-        var btn = pad.querySelector('.btn');
-        btn.textContent = 'Not available on iPhone';
-        btn.removeAttribute('href');
-        btn.setAttribute('aria-disabled', 'true');
+        var btns = pad.querySelectorAll('.btn');
+        btns.forEach(function (b, i) { if (i) b.remove(); });
+        btns[0].textContent = 'Not available on iPhone';
+        btns[0].className = 'btn';
+        btns[0].removeAttribute('href');
+        btns[0].setAttribute('aria-disabled', 'true');
       }
 
       // ---- feedback: stored in the CutVid database (write-only for visitors) ----
